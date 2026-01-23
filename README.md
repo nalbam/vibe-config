@@ -6,7 +6,7 @@ Claude Code settings, agents, hooks, rules, and skills for consistent AI-assiste
 
 ```bash
 # Run sync script (clones repo if needed, then syncs to ~/.claude/)
-bash -c "$(curl -fsSL raw.githubusercontent.com/nalbam/claude-config/main/sync.sh)"
+bash -c "$(curl -fsSL nalbam.github.io/claude-config/sync.sh)"
 
 # Or if already cloned
 ./sync.sh
