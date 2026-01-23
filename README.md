@@ -18,6 +18,7 @@ bash -c "$(curl -fsSL nalbam.github.io/claude-config/sync.sh)"
 ./sync.sh        # Interactive mode (prompts for each change)
 ./sync.sh -y     # Auto-yes mode (sync all without prompts)
 ./sync.sh -n     # Dry-run mode (show changes only)
+./sync.sh -h     # Show help
 ```
 
 ## Directory Structure
@@ -153,11 +154,19 @@ The `settings.json` file includes:
 Create `~/.claude/.env.local` for local settings:
 
 ```bash
-# Notifications
-NTFY_TOPIC=your-topic
-SLACK_WEBHOOK_URL=https://hooks.slack.com/...
+# Debug mode (1: enable, 0: disable)
+# DEBUG=1
 
-# Claude Monitor (ESP32)
+# Notification Settings (1: enable, 0: disable, default: 1)
+NOTIFY_SYSTEM=1                          # macOS system notification
+NOTIFY_SOUND=1                           # Sound alert (afplay)
+
+# Push Notifications
+NTFY_TOPIC=your-topic                    # ntfy.sh push notification
+SLACK_WEBHOOK_URL=https://hooks.slack.com/...  # Slack webhook
+
+# Claude Monitor
+# CLAUDE_MONITOR_DESKTOP=$HOME/path/to/claude-monitor/desktop
 ESP32_SERIAL_PORT=/dev/cu.usbmodem1101   # USB Serial port
 ESP32_HTTP_URL=http://192.168.1.100      # HTTP fallback (WiFi mode)
 ```
