@@ -11,14 +11,8 @@ debug_log() {
   fi
 }
 
-# 로그 파일 (디버깅용)
-LOG_FILE="/tmp/claude-monitor-hook.log"
-
 # 입력 읽기 (timeout으로 전체 stdin 읽기)
 input=$(timeout 5 cat 2>/dev/null || cat)
-
-# 로그 기록
-echo "$(date '+%Y-%m-%d %H:%M:%S') - Input: $input" >> "$LOG_FILE"
 
 # 이벤트 정보 추출 (here-string 사용으로 큰 JSON 안정적 처리)
 event_name=$(jq -r '.hook_event_name // "Unknown"' <<< "$input" 2>/dev/null)
@@ -118,10 +112,7 @@ send_desktop() {
 sent=false
 
 # 0. Desktop App 시도 (항상 시도, 실패해도 계속)
-echo "$(date '+%Y-%m-%d %H:%M:%S') - State: $state, Project: $project_name" >> "$LOG_FILE"
-desktop_result=$(curl -s -X POST "http://127.0.0.1:19280/status" -H "Content-Type: application/json" -d "$payload" --connect-timeout 1 --max-time 2 2>&1)
-desktop_exit=$?
-echo "$(date '+%Y-%m-%d %H:%M:%S') - Desktop exit: $desktop_exit, result: $desktop_result" >> "$LOG_FILE"
+send_desktop "$payload"
 
 # 1. USB 시리얼 시도
 if [ -n "${ESP32_SERIAL_PORT}" ]; then
