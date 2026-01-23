@@ -117,6 +117,14 @@ is_desktop_running() {
   return $?
 }
 
+# Desktop App 창 보이기 및 위치 재설정
+show_desktop_window() {
+  curl -s -X POST "http://127.0.0.1:19280/show" \
+    --connect-timeout 1 \
+    --max-time 1 \
+    > /dev/null 2>&1
+}
+
 # Desktop App 실행
 launch_desktop() {
   local app_dir="${CLAUDE_MONITOR_DESKTOP:-$HOME/workspace/github.com/nalbam/claude-monitor/desktop}"
@@ -145,9 +153,12 @@ launch_desktop() {
 sent=false
 
 # 0. Desktop App 시도
-# SessionStart 시 앱이 실행 중이 아니면 자동 실행
+# SessionStart 시 앱이 실행 중이면 창 보이기, 아니면 자동 실행
 if [ "$event_name" = "SessionStart" ]; then
-  if ! is_desktop_running; then
+  if is_desktop_running; then
+    debug_log "Desktop App running, showing window..."
+    show_desktop_window
+  else
     debug_log "Desktop App not running, launching..."
     launch_desktop
   fi
