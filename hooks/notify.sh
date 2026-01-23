@@ -3,6 +3,10 @@
 # Debug mode (set DEBUG=1 to enable)
 DEBUG="${DEBUG:-0}"
 
+# Notification settings (default: enabled)
+NOTIFY_SYSTEM="${NOTIFY_SYSTEM:-1}"
+NOTIFY_SOUND="${NOTIFY_SOUND:-1}"
+
 debug_log() {
   if [[ "$DEBUG" == "1" ]]; then
     echo "[DEBUG] $*" >&2
@@ -60,33 +64,42 @@ esac
 
 # macOS 시스템 알림 + 사운드
 if [[ "$OSTYPE" == "darwin"* ]]; then
-  debug_log "Sending macOS notification: $message"
-  if osascript -e "display notification \"$message\" with title \"$title\"" 2>&1 | grep -v "^$" >&2; then
-    debug_log "macOS notification sent successfully"
+  # 시스템 알림
+  if [[ "$NOTIFY_SYSTEM" == "1" ]]; then
+    debug_log "Sending macOS notification: $message"
+    if osascript -e "display notification \"$message\" with title \"$title\"" 2>&1 | grep -v "^$" >&2; then
+      debug_log "macOS notification sent successfully"
+    fi
+  else
+    debug_log "macOS notification disabled (NOTIFY_SYSTEM=0)"
   fi
 
   # 사운드 재생 (nohup으로 백그라운드 실행)
-  case "$event_name" in
-    "Stop")
-      sound_file=~/.claude/sounds/ding1.mp3
-      ;;
-    "Notification")
-      sound_file=~/.claude/sounds/ding2.mp3
-      ;;
-    *)
-      sound_file=~/.claude/sounds/ding3.mp3
-      ;;
-  esac
+  if [[ "$NOTIFY_SOUND" == "1" ]]; then
+    case "$event_name" in
+      "Stop")
+        sound_file=~/.claude/sounds/ding1.mp3
+        ;;
+      "Notification")
+        sound_file=~/.claude/sounds/ding2.mp3
+        ;;
+      *)
+        sound_file=~/.claude/sounds/ding3.mp3
+        ;;
+    esac
 
-  if [ -f "$sound_file" ]; then
-    debug_log "Playing sound: $sound_file"
-    if [[ "$DEBUG" == "1" ]]; then
-      afplay "$sound_file" 2>&1 | grep -v "^$" >&2
+    if [ -f "$sound_file" ]; then
+      debug_log "Playing sound: $sound_file"
+      if [[ "$DEBUG" == "1" ]]; then
+        afplay "$sound_file" 2>&1 | grep -v "^$" >&2
+      else
+        nohup afplay "$sound_file" >/dev/null 2>&1 &
+      fi
     else
-      nohup afplay "$sound_file" >/dev/null 2>&1 &
+      debug_log "Sound file not found: $sound_file"
     fi
   else
-    debug_log "Sound file not found: $sound_file"
+    debug_log "Sound notification disabled (NOTIFY_SOUND=0)"
   fi
 fi
 
