@@ -123,8 +123,18 @@ launch_desktop() {
 
   if [ -d "$app_dir" ]; then
     debug_log "Launching Desktop App from: $app_dir"
-    # stdin/stdout/stderr 모두 분리하여 완전한 백그라운드 실행
-    (cd "$app_dir" && nohup npm start </dev/null >/dev/null 2>&1 &)
+    # Perl의 setsid로 완전히 새 세션에서 실행 (double fork + setsid)
+    perl -e '
+      use POSIX "setsid";
+      fork and exit;
+      setsid();
+      fork and exit;
+      chdir $ARGV[0];
+      open STDIN, "</dev/null";
+      open STDOUT, ">/dev/null";
+      open STDERR, ">/dev/null";
+      exec "npm", "start";
+    ' "$app_dir"
     sleep 2
   else
     debug_log "Desktop App directory not found: $app_dir"
