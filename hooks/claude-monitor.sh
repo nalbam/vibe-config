@@ -20,6 +20,40 @@ tool_name=$(jq -r '.tool_name // ""' <<< "$input" 2>/dev/null)
 cwd=$(jq -r '.cwd // ""' <<< "$input" 2>/dev/null)
 transcript_path=$(jq -r '.transcript_path // ""' <<< "$input" 2>/dev/null)
 
+# 모델 정보 추출
+model_name=$(jq -r '.model // ""' <<< "$input" 2>/dev/null)
+# 모델 이름 단순화 (claude-sonnet-4-... -> sonnet)
+if [ -n "$model_name" ]; then
+  case "$model_name" in
+    *opus*) model_name="opus" ;;
+    *sonnet*) model_name="sonnet" ;;
+    *haiku*) model_name="haiku" ;;
+  esac
+fi
+
+# 메모리(컨텍스트) 사용량 추출
+# context_window 정보가 있으면 사용, 없으면 transcript 파일 크기로 추정
+context_used=$(jq -r '.context_window.used // 0' <<< "$input" 2>/dev/null)
+context_total=$(jq -r '.context_window.total // 0' <<< "$input" 2>/dev/null)
+
+if [ "$context_total" -gt 0 ] 2>/dev/null; then
+  # 퍼센트 계산
+  memory_percent=$((context_used * 100 / context_total))
+  memory_usage="${memory_percent}%"
+elif [ -n "$transcript_path" ] && [ -f "$transcript_path" ]; then
+  # transcript 파일 크기로 추정 (1MB = ~10% 가정, 최대 100%)
+  file_size=$(stat -f%z "$transcript_path" 2>/dev/null || stat -c%s "$transcript_path" 2>/dev/null || echo 0)
+  # KB 단위로 변환
+  file_kb=$((file_size / 1024))
+  # 대략적인 퍼센트 추정 (100KB당 1%, 최대 99%)
+  memory_percent=$((file_kb / 100))
+  [ "$memory_percent" -gt 99 ] && memory_percent=99
+  [ "$memory_percent" -lt 1 ] && memory_percent=1
+  memory_usage="${memory_percent}%"
+else
+  memory_usage=""
+fi
+
 # jq 실패 시 기본값
 [ -z "$event_name" ] && event_name="Unknown"
 
@@ -33,7 +67,7 @@ else
   project_name=""
 fi
 
-debug_log "Event: $event_name, Tool: $tool_name, Project: $project_name"
+debug_log "Event: $event_name, Tool: $tool_name, Project: $project_name, Model: $model_name, Memory: $memory_usage"
 
 # 상태 결정
 case "$event_name" in
@@ -63,7 +97,9 @@ payload=$(jq -n \
   --arg event "$event_name" \
   --arg tool "$tool_name" \
   --arg project "$project_name" \
-  '{state: $state, event: $event, tool: $tool, project: $project}')
+  --arg model "$model_name" \
+  --arg memory "$memory_usage" \
+  '{state: $state, event: $event, tool: $tool, project: $project, model: $model, memory: $memory}')
 
 debug_log "Payload: $payload"
 
