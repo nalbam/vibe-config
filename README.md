@@ -39,14 +39,8 @@ claude-config/
 │   └── test-writer.md        # Test generation
 │
 ├── hooks/                    # Automated workflow hooks
-│   ├── console-log-audit.sh  # Audit console.log before session ends
-│   ├── doc-warning.sh        # Warn about docs outside docs/
 │   ├── esp32-status.sh       # Send status to ESP32 display
-│   ├── git-push-guard.sh     # Pause before git push
-│   ├── notify.sh             # Multi-platform notifications
-│   ├── pr-info.sh            # Display PR URL after creation
-│   ├── prettier-format.sh    # Auto-format JS/TS files
-│   └── typescript-check.sh   # TypeScript validation
+│   └── notify.sh             # Multi-platform notifications
 │
 ├── rules/                    # Always-follow guidelines
 │   ├── coding-style.md       # Immutability, file organization
@@ -93,22 +87,17 @@ Automated quality checks and workflow enforcement:
 - `esp32-status.sh` - Initialize ESP32 display status
 
 **PreToolUse:**
-- `git-push-guard.sh` - Pause before push for review
-- `doc-warning.sh` - Warn about docs outside docs/
-- `esp32-status.sh` - Update ESP32 display on every tool use
+- `esp32-status.sh` - Update ESP32 display before tool use
 
 **PostToolUse:**
-- `prettier-format.sh` - Auto-format JS/TS files
-- `typescript-check.sh` - Validate TypeScript
-- `pr-info.sh` - Display PR URL after creation
+- `esp32-status.sh` - Update ESP32 display after tool use
 
 **Stop:**
-- `console-log-audit.sh` - Check for console.log before commit
 - `notify.sh` - Send completion notifications
 - `esp32-status.sh` - Update ESP32 display on stop
 
 **Notification:**
-- `notify.sh` - Multi-platform notifications (macOS, WSL, ntfy.sh, Slack)
+- `notify.sh` - Send completion notifications
 - `esp32-status.sh` - Send status to ESP32 display
 
 ### Skills
