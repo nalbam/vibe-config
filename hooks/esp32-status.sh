@@ -88,8 +88,27 @@ send_http() {
   return $?
 }
 
+# 전송 함수: Desktop App (localhost:19280)
+send_desktop() {
+  local data="$1"
+
+  curl -s -X POST "http://127.0.0.1:19280/status" \
+    -H "Content-Type: application/json" \
+    -d "$data" \
+    --connect-timeout 1 \
+    --max-time 2 \
+    > /dev/null 2>&1
+  return $?
+}
+
 # 전송 시도
 sent=false
+
+# 0. Desktop App 시도 (항상 시도, 실패해도 계속)
+debug_log "Trying Desktop App: http://127.0.0.1:19280"
+if send_desktop "$payload"; then
+  debug_log "Sent to Desktop App"
+fi
 
 # 1. USB 시리얼 시도
 if [ -n "${ESP32_SERIAL_PORT}" ]; then
