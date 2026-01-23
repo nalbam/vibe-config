@@ -89,9 +89,13 @@ Specialized agents for delegated tasks:
 
 Automated quality checks and workflow enforcement:
 
+**SessionStart:**
+- `esp32-status.sh` - Initialize ESP32 display status
+
 **PreToolUse:**
 - `git-push-guard.sh` - Pause before push for review
 - `doc-warning.sh` - Warn about docs outside docs/
+- `esp32-status.sh` - Update ESP32 display on every tool use
 
 **PostToolUse:**
 - `prettier-format.sh` - Auto-format JS/TS files
@@ -101,6 +105,7 @@ Automated quality checks and workflow enforcement:
 **Stop:**
 - `console-log-audit.sh` - Check for console.log before commit
 - `notify.sh` - Send completion notifications
+- `esp32-status.sh` - Update ESP32 display on stop
 
 **Notification:**
 - `notify.sh` - Multi-platform notifications (macOS, WSL, ntfy.sh, Slack)
@@ -128,6 +133,25 @@ The `notify.sh` hook supports multiple platforms:
 
 Send Claude Code status to ESP32 display via USB Serial or HTTP.
 See [claude-monitor](https://github.com/nalbam/claude-monitor) for the ESP32 firmware.
+
+## Configuration
+
+The `settings.json` file includes:
+
+| Setting | Value | Description |
+|---------|-------|-------------|
+| `model` | `opus` | Default Claude model |
+| `cleanupPeriodDays` | `30` | Conversation cleanup period |
+| `MAX_THINKING_TOKENS` | `31999` | Extended thinking token limit |
+| `statusLine` | `ccusage` | Show API usage in status line |
+
+### Enabled Plugins
+
+- `context7` - Up-to-date library documentation
+- `frontend-design` - Frontend design assistance
+- `code-review` - Code review tools
+- `linear` - Linear issue tracking integration
+- `superpowers` - Advanced skills and workflows
 
 ## Environment Variables
 
