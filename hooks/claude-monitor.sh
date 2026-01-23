@@ -123,8 +123,8 @@ launch_desktop() {
 
   if [ -d "$app_dir" ]; then
     debug_log "Launching Desktop App from: $app_dir"
-    cd "$app_dir" && npm start > /dev/null 2>&1 &
-    # Wait for app to start
+    # stdin/stdout/stderr 모두 분리하여 완전한 백그라운드 실행
+    (cd "$app_dir" && nohup npm start </dev/null >/dev/null 2>&1 &)
     sleep 2
   else
     debug_log "Desktop App directory not found: $app_dir"
