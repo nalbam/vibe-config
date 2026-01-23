@@ -39,7 +39,7 @@ claude-config/
 │   └── test-writer.md        # Test generation
 │
 ├── hooks/                    # Automated workflow hooks
-│   ├── esp32-status.sh       # Send status to ESP32 display
+│   ├── claude-monitor.sh     # Send status to Desktop app / ESP32
 │   └── notify.sh             # Multi-platform notifications
 │
 ├── rules/                    # Always-follow guidelines
@@ -84,21 +84,21 @@ Specialized agents for delegated tasks:
 Automated quality checks and workflow enforcement:
 
 **SessionStart:**
-- `esp32-status.sh` - Initialize ESP32 display status
+- `claude-monitor.sh` - Initialize monitor status
 
 **PreToolUse:**
-- `esp32-status.sh` - Update ESP32 display before tool use
+- `claude-monitor.sh` - Update monitor (working state)
 
 **PostToolUse:**
-- `esp32-status.sh` - Update ESP32 display after tool use
+- `claude-monitor.sh` - Update monitor (done state)
 
 **Stop:**
 - `notify.sh` - Send completion notifications
-- `esp32-status.sh` - Update ESP32 display on stop
+- `claude-monitor.sh` - Update monitor (idle state)
 
 **Notification:**
 - `notify.sh` - Send completion notifications
-- `esp32-status.sh` - Send status to ESP32 display
+- `claude-monitor.sh` - Update monitor (notification state)
 
 ### Skills
 
@@ -118,10 +118,16 @@ The `notify.sh` hook supports multiple platforms:
 - **ntfy.sh**: Push notifications (set `NTFY_TOPIC`)
 - **Slack**: Webhook notifications (set `SLACK_WEBHOOK_URL`)
 
-### ESP32 Status Display
+### Claude Monitor
 
-Send Claude Code status to ESP32 display via USB Serial or HTTP.
-See [claude-monitor](https://github.com/nalbam/claude-monitor) for the ESP32 firmware.
+Display Claude Code status in real-time:
+
+| Target | Description |
+|--------|-------------|
+| **Desktop App** | Frameless Electron app (macOS) on `localhost:19280` |
+| **ESP32 Device** | ESP32-C6-LCD-1.47 via USB Serial or HTTP |
+
+See [claude-monitor](https://github.com/nalbam/claude-monitor) for Desktop app and ESP32 firmware.
 
 ## Configuration
 
@@ -151,9 +157,9 @@ Create `~/.claude/.env.local` for local settings:
 NTFY_TOPIC=your-topic
 SLACK_WEBHOOK_URL=https://hooks.slack.com/...
 
-# ESP32 Display
-ESP32_STATUS_ENABLED=true
-ESP32_STATUS_URL=http://192.168.1.100
+# Claude Monitor (ESP32)
+ESP32_SERIAL_PORT=/dev/cu.usbmodem1101   # USB Serial port
+ESP32_HTTP_URL=http://192.168.1.100      # HTTP fallback (WiFi mode)
 ```
 
 ## Related Projects
