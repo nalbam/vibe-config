@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# ESP32 상태 표시 Hook
-# USB 시리얼 우선, HTTP fallback
+# Claude Monitor Hook
+# Desktop App (localhost:19280) + ESP32 (USB Serial / HTTP)
 
 DEBUG="${DEBUG:-0}"
 
@@ -18,10 +18,14 @@ read -t 5 input
 event_name=$(echo "$input" | jq -r '.hook_event_name' 2>/dev/null || echo "Unknown")
 tool_name=$(echo "$input" | jq -r '.tool_name // empty' 2>/dev/null)
 cwd=$(echo "$input" | jq -r '.cwd // empty' 2>/dev/null)
+transcript_path=$(echo "$input" | jq -r '.transcript_path // empty' 2>/dev/null)
 
-# 프로젝트 이름 추출
+# 프로젝트 이름 추출 (cwd > transcript_path)
 if [ -n "$cwd" ]; then
   project_name=$(basename "$cwd")
+elif [ -n "$transcript_path" ]; then
+  # transcript_path: ~/.claude/projects/project-name/session.jsonl
+  project_name=$(basename "$(dirname "$transcript_path")")
 else
   project_name=""
 fi
