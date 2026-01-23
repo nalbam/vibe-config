@@ -128,21 +128,11 @@ show_desktop_window() {
 # Desktop App 실행
 launch_desktop() {
   local app_dir="${CLAUDE_MONITOR_DESKTOP:-$HOME/workspace/github.com/nalbam/claude-monitor/desktop}"
+  local start_script="$app_dir/start.sh"
 
-  if [ -d "$app_dir" ]; then
-    debug_log "Launching Desktop App from: $app_dir"
-    # Perl의 setsid로 완전히 새 세션에서 실행 (double fork + setsid)
-    perl -e '
-      use POSIX "setsid";
-      fork and exit;
-      setsid();
-      fork and exit;
-      chdir $ARGV[0];
-      open STDIN, "</dev/null";
-      open STDOUT, ">/dev/null";
-      open STDERR, ">/dev/null";
-      exec "npm", "start";
-    ' "$app_dir"
+  if [ -x "$start_script" ]; then
+    debug_log "Launching Desktop App via start.sh: $start_script"
+    "$start_script" > /dev/null 2>&1
     sleep 2
   else
     debug_log "Desktop App directory not found: $app_dir"
