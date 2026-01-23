@@ -298,7 +298,7 @@ while IFS= read -r -d '' source_file; do
     fi
   fi
 
-done < <(find "$SOURCE_DIR" -type f -print0 | sort -z)
+done < <(find "$SOURCE_DIR" -type f -not -path '*/.git/*' -print0 | sort -z)
 
 # Summary
 _echo "\n╔════════════════════════════════════════════════════════════════╗" 2
