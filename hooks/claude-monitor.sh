@@ -20,14 +20,40 @@ tool_name=$(jq -r '.tool_name // ""' <<< "$input" 2>/dev/null)
 cwd=$(jq -r '.cwd // ""' <<< "$input" 2>/dev/null)
 transcript_path=$(jq -r '.transcript_path // ""' <<< "$input" 2>/dev/null)
 
-# 모델 정보 추출
-model_name=$(jq -r '.model // ""' <<< "$input" 2>/dev/null)
+# 모델 정보 추출 (SessionStart에서만 전달됨)
+# 세션별로 model 정보를 캐싱하여 다른 이벤트에서도 사용
+model_cache_dir="$HOME/.claude/.cache"
+mkdir -p "$model_cache_dir" 2>/dev/null
+
+# 세션 ID 추출 (캐시 키로 사용)
+session_id=$(jq -r '.session_id // ""' <<< "$input" 2>/dev/null)
+
+# model 필드 추출 시도
+model_raw=$(jq -r '.model // ""' <<< "$input" 2>/dev/null)
+
+if [ -n "$model_raw" ] && [ "$model_raw" != "null" ]; then
+  # SessionStart: model 정보가 있으면 캐싱
+  echo "$model_raw" > "$model_cache_dir/model_current" 2>/dev/null
+  if [ -n "$session_id" ]; then
+    echo "$model_raw" > "$model_cache_dir/model_$session_id" 2>/dev/null
+  fi
+else
+  # 다른 이벤트: 캐시에서 읽기
+  if [ -n "$session_id" ] && [ -f "$model_cache_dir/model_$session_id" ]; then
+    model_raw=$(cat "$model_cache_dir/model_$session_id" 2>/dev/null)
+  elif [ -f "$model_cache_dir/model_current" ]; then
+    model_raw=$(cat "$model_cache_dir/model_current" 2>/dev/null)
+  fi
+fi
+
 # 모델 이름 단순화 (claude-sonnet-4-... -> sonnet)
-if [ -n "$model_name" ]; then
-  case "$model_name" in
+model_name=""
+if [ -n "$model_raw" ] && [ "$model_raw" != "null" ]; then
+  case "$model_raw" in
     *opus*) model_name="opus" ;;
     *sonnet*) model_name="sonnet" ;;
     *haiku*) model_name="haiku" ;;
+    *) model_name="$model_raw" ;;
   esac
 fi
 
