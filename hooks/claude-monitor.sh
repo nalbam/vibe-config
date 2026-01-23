@@ -11,14 +11,23 @@ debug_log() {
   fi
 }
 
-# 입력 읽기 (타임아웃 5초)
-read -t 5 input
+# 로그 파일 (디버깅용)
+LOG_FILE="/tmp/claude-monitor-hook.log"
 
-# 이벤트 정보 추출
-event_name=$(echo "$input" | jq -r '.hook_event_name' 2>/dev/null || echo "Unknown")
-tool_name=$(echo "$input" | jq -r '.tool_name // empty' 2>/dev/null)
-cwd=$(echo "$input" | jq -r '.cwd // empty' 2>/dev/null)
-transcript_path=$(echo "$input" | jq -r '.transcript_path // empty' 2>/dev/null)
+# 입력 읽기 (timeout으로 전체 stdin 읽기)
+input=$(timeout 5 cat 2>/dev/null || cat)
+
+# 로그 기록
+echo "$(date '+%Y-%m-%d %H:%M:%S') - Input: $input" >> "$LOG_FILE"
+
+# 이벤트 정보 추출 (here-string 사용으로 큰 JSON 안정적 처리)
+event_name=$(jq -r '.hook_event_name // "Unknown"' <<< "$input" 2>/dev/null)
+tool_name=$(jq -r '.tool_name // ""' <<< "$input" 2>/dev/null)
+cwd=$(jq -r '.cwd // ""' <<< "$input" 2>/dev/null)
+transcript_path=$(jq -r '.transcript_path // ""' <<< "$input" 2>/dev/null)
+
+# jq 실패 시 기본값
+[ -z "$event_name" ] && event_name="Unknown"
 
 # 프로젝트 이름 추출 (cwd > transcript_path)
 if [ -n "$cwd" ]; then
@@ -41,7 +50,7 @@ case "$event_name" in
     state="working"
     ;;
   "PostToolUse")
-    state="tool_done"
+    state="working"
     ;;
   "Stop")
     state="idle"
@@ -109,10 +118,10 @@ send_desktop() {
 sent=false
 
 # 0. Desktop App 시도 (항상 시도, 실패해도 계속)
-debug_log "Trying Desktop App: http://127.0.0.1:19280"
-if send_desktop "$payload"; then
-  debug_log "Sent to Desktop App"
-fi
+echo "$(date '+%Y-%m-%d %H:%M:%S') - State: $state, Project: $project_name" >> "$LOG_FILE"
+desktop_result=$(curl -s -X POST "http://127.0.0.1:19280/status" -H "Content-Type: application/json" -d "$payload" --connect-timeout 1 --max-time 2 2>&1)
+desktop_exit=$?
+echo "$(date '+%Y-%m-%d %H:%M:%S') - Desktop exit: $desktop_exit, result: $desktop_result" >> "$LOG_FILE"
 
 # 1. USB 시리얼 시도
 if [ -n "${ESP32_SERIAL_PORT}" ]; then
