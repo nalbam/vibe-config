@@ -47,7 +47,7 @@ case "$event_name" in
     state="working"
     ;;
   "Stop")
-    state="idle"
+    state="tool_done"
     ;;
   "Notification")
     state="notification"
