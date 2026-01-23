@@ -108,10 +108,41 @@ send_desktop() {
   return $?
 }
 
+# Desktop App 실행 여부 확인
+is_desktop_running() {
+  curl -s "http://127.0.0.1:19280/health" \
+    --connect-timeout 1 \
+    --max-time 1 \
+    > /dev/null 2>&1
+  return $?
+}
+
+# Desktop App 실행
+launch_desktop() {
+  local app_dir="${CLAUDE_MONITOR_DESKTOP:-$HOME/workspace/github.com/nalbam/claude-monitor/desktop}"
+
+  if [ -d "$app_dir" ]; then
+    debug_log "Launching Desktop App from: $app_dir"
+    cd "$app_dir" && npm start > /dev/null 2>&1 &
+    # Wait for app to start
+    sleep 2
+  else
+    debug_log "Desktop App directory not found: $app_dir"
+  fi
+}
+
 # 전송 시도
 sent=false
 
-# 0. Desktop App 시도 (항상 시도, 실패해도 계속)
+# 0. Desktop App 시도
+# SessionStart 시 앱이 실행 중이 아니면 자동 실행
+if [ "$event_name" = "SessionStart" ]; then
+  if ! is_desktop_running; then
+    debug_log "Desktop App not running, launching..."
+    launch_desktop
+  fi
+fi
+
 send_desktop "$payload"
 
 # 1. USB 시리얼 시도
