@@ -297,9 +297,9 @@ build_statusline() {
     status_line="${status_line}${SEP}${C_GREEN}🌿 ${branch_info}${C_RESET}"
   fi
 
-  # Model (⚡ icon) - remove "Claude " prefix, keep version
+  # Model (🤖 icon) - remove "Claude " prefix, keep version
   local short_model="${model#Claude }"
-  status_line="${status_line}${SEP}${C_MAGENTA}⚡ ${short_model}${C_RESET}"
+  status_line="${status_line}${SEP}${C_MAGENTA}🤖 ${short_model}${C_RESET}"
 
   # Token usage (📥 in / 📤 out)
   if [ -n "$input_tokens" ] && [ "$input_tokens" != "0" ]; then
