@@ -283,44 +283,44 @@ build_statusline() {
   #   # Remove surrounding parentheses and space
   #   kube_info="${kube_info#(}"
   #   kube_info="${kube_info%) }"
-  #   status_line="${C_CYAN}☸${kube_info}${C_RESET}${SEP}"
+  #   status_line="${C_CYAN}☸ ${kube_info}${C_RESET}${SEP}"
   # fi
 
   # Directory (📂 icon)
-  status_line="${status_line}${C_BLUE}📂${dir_name}${C_RESET}"
+  status_line="${status_line}${C_BLUE}📂 ${dir_name}${C_RESET}"
 
   # Git info (🌿 icon)
   if [ -n "$git_info" ]; then
     # Extract branch and status from " git:(branch *)" format
     local branch_info="${git_info#* git:(}"
     branch_info="${branch_info%)}"
-    status_line="${status_line}${SEP}${C_GREEN}🌿${branch_info}${C_RESET}"
+    status_line="${status_line}${SEP}${C_GREEN}🌿 ${branch_info}${C_RESET}"
   fi
 
   # Model (⚡ icon) - remove "Claude " prefix, keep version
   local short_model="${model#Claude }"
-  status_line="${status_line}${SEP}${C_MAGENTA}⚡${short_model}${C_RESET}"
+  status_line="${status_line}${SEP}${C_MAGENTA}⚡ ${short_model}${C_RESET}"
 
   # Token usage (📥 in / 📤 out)
   if [ -n "$input_tokens" ] && [ "$input_tokens" != "0" ]; then
     local in_fmt out_fmt
     in_fmt=$(format_number "$input_tokens")
     out_fmt=$(format_number "$output_tokens")
-    status_line="${status_line}${SEP}${C_CYAN}📥${in_fmt} 📤${out_fmt}${C_RESET}"
+    status_line="${status_line}${SEP}${C_CYAN}📥 ${in_fmt} 📤 ${out_fmt}${C_RESET}"
   fi
 
   # Cost (💰 icon)
   if [ -n "$cost" ] && [ "$cost" != "0" ] && [ "$cost" != "null" ]; then
     local cost_fmt
     cost_fmt=$(format_cost "$cost")
-    status_line="${status_line}${SEP}${C_YELLOW}💰${cost_fmt}${C_RESET}"
+    status_line="${status_line}${SEP}${C_YELLOW}💰 ${cost_fmt}${C_RESET}"
   fi
 
   # Duration (⏱ icon)
   if [ -n "$duration" ] && [ "$duration" != "0" ] && [ "$duration" != "null" ]; then
     local duration_fmt
     duration_fmt=$(format_duration "$duration")
-    status_line="${status_line}${SEP}${C_DIM}⏱${duration_fmt}${C_RESET}"
+    status_line="${status_line}${SEP}${C_DIM}⏱ ${duration_fmt}${C_RESET}"
   fi
 
   # Lines changed (+/-)
