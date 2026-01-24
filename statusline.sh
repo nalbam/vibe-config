@@ -143,6 +143,61 @@ send_to_desktop() {
 }
 
 # ============================================================================
+# ANSI Colors
+# ============================================================================
+
+# Colors
+C_RESET='\033[0m'
+C_BOLD='\033[1m'
+C_DIM='\033[2m'
+C_CYAN='\033[36m'
+C_GREEN='\033[32m'
+C_YELLOW='\033[33m'
+C_RED='\033[31m'
+C_MAGENTA='\033[35m'
+C_BLUE='\033[34m'
+
+# ============================================================================
+# Progress Bar Functions
+# ============================================================================
+
+build_progress_bar() {
+  local percent="$1"
+  local width="${2:-10}"
+
+  # Remove % sign if present
+  percent="${percent%\%}"
+
+  # Handle empty or invalid input
+  if [ -z "$percent" ] || ! [[ "$percent" =~ ^[0-9]+$ ]]; then
+    echo ""
+    return
+  fi
+
+  local filled=$((percent * width / 100))
+  local empty=$((width - filled))
+
+  # Color based on usage level
+  local color="$C_GREEN"
+  if [ "$percent" -ge 90 ]; then
+    color="$C_RED"
+  elif [ "$percent" -ge 75 ]; then
+    color="$C_YELLOW"
+  fi
+
+  # Build the bar
+  local bar=""
+  for ((i=0; i<filled; i++)); do
+    bar="${bar}━"
+  done
+  for ((i=0; i<empty; i++)); do
+    bar="${bar}╌"
+  done
+
+  printf "%b%s%b %s%%" "$color" "$bar" "$C_RESET" "$percent"
+}
+
+# ============================================================================
 # Statusline Output
 # ============================================================================
 
@@ -153,25 +208,42 @@ build_statusline() {
   local kube_info="$4"
   local context_usage="$5"
 
+  local SEP=" │ "
   local status_line=""
 
-  # Kubernetes context
+  # Kubernetes context (☸ icon)
   if [ -n "$kube_info" ]; then
-    status_line="${kube_info}"
+    # Remove surrounding parentheses and space
+    kube_info="${kube_info#(}"
+    kube_info="${kube_info%) }"
+    status_line="${C_CYAN}☸ ${kube_info}${C_RESET}${SEP}"
   fi
 
-  # Directory and git info
-  status_line="${status_line}${dir_name}${git_info}"
+  # Directory (📂 icon)
+  status_line="${status_line}${C_BLUE}📂 ${dir_name}${C_RESET}"
 
-  # Model
-  status_line="${status_line} [${model}]"
+  # Git info (🌿 icon)
+  if [ -n "$git_info" ]; then
+    # Extract branch and status from " git:(branch *)" format
+    local branch_info="${git_info#* git:(}"
+    branch_info="${branch_info%)}"
+    status_line="${status_line}${SEP}${C_GREEN}🌿 ${branch_info}${C_RESET}"
+  fi
 
-  # Context usage
+  # Model (⚡ icon) - remove "Claude " prefix, keep version
+  local short_model="${model#Claude }"
+  status_line="${status_line}${SEP}${C_MAGENTA}⚡ ${short_model}${C_RESET}"
+
+  # Context usage with progress bar (◔ icon)
   if [ -n "$context_usage" ]; then
-    status_line="${status_line} ${context_usage}"
+    local progress_bar
+    progress_bar=$(build_progress_bar "$context_usage")
+    if [ -n "$progress_bar" ]; then
+      status_line="${status_line}${SEP}◔ ${progress_bar}"
+    fi
   fi
 
-  printf "%s" "$status_line"
+  printf "%b" "$status_line"
 }
 
 # ============================================================================
