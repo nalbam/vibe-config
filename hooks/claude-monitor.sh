@@ -2,9 +2,9 @@
 
 # Claude Monitor Hook
 # Desktop App (localhost:19280) + ESP32 (USB Serial / HTTP)
+# Note: Model and Memory are provided by statusline.sh (accurate data)
 
 DEBUG="${DEBUG:-0}"
-MODEL_CACHE_DIR="$HOME/.claude/.cache"
 
 # ============================================================================
 # Utility Functions
@@ -14,11 +14,6 @@ debug_log() {
   if [[ "$DEBUG" == "1" ]]; then
     echo "[DEBUG] $*" >&2
   fi
-}
-
-capitalize() {
-  local str="$1"
-  echo "$(echo "${str:0:1}" | tr '[:lower:]' '[:upper:]')${str:1}"
 }
 
 # ============================================================================
@@ -34,73 +29,6 @@ parse_json_field() {
   local field="$2"
   local default="${3:-}"
   jq -r "$field // \"$default\"" <<< "$input" 2>/dev/null
-}
-
-# ============================================================================
-# Model Functions
-# ============================================================================
-
-cache_model() {
-  local model="$1"
-  local session_id="$2"
-
-  mkdir -p "$MODEL_CACHE_DIR" 2>/dev/null
-  echo "$model" > "$MODEL_CACHE_DIR/model_current" 2>/dev/null
-  if [ -n "$session_id" ]; then
-    echo "$model" > "$MODEL_CACHE_DIR/model_$session_id" 2>/dev/null
-  fi
-}
-
-get_cached_model() {
-  local session_id="$1"
-
-  if [ -n "$session_id" ] && [ -f "$MODEL_CACHE_DIR/model_$session_id" ]; then
-    cat "$MODEL_CACHE_DIR/model_$session_id" 2>/dev/null
-  elif [ -f "$MODEL_CACHE_DIR/model_current" ]; then
-    cat "$MODEL_CACHE_DIR/model_current" 2>/dev/null
-  fi
-}
-
-parse_model_name() {
-  local model_raw="$1"
-
-  [ -z "$model_raw" ] || [ "$model_raw" = "null" ] && return
-
-  # Pattern: claude-{name}-{major}-{minor}-{date} or claude-{name}-{major}-{date}
-  if [[ "$model_raw" =~ ^claude-([a-z]+)-([0-9]+)-([0-9]+)-[0-9]+$ ]]; then
-    # claude-opus-4-5-20251101 -> Opus 4.5
-    echo "$(capitalize "${BASH_REMATCH[1]}") ${BASH_REMATCH[2]}.${BASH_REMATCH[3]}"
-  elif [[ "$model_raw" =~ ^claude-([a-z]+)-([0-9]+)-[0-9]+$ ]]; then
-    # claude-sonnet-4-20250514 -> Sonnet 4
-    echo "$(capitalize "${BASH_REMATCH[1]}") ${BASH_REMATCH[2]}"
-  elif [[ "$model_raw" =~ ^claude-([a-z]+) ]]; then
-    # claude-sonnet -> Sonnet
-    capitalize "${BASH_REMATCH[1]}"
-  else
-    echo "$model_raw"
-  fi
-}
-
-# ============================================================================
-# Memory Functions
-# ============================================================================
-
-get_memory_usage() {
-  local context_used="$1"
-  local context_total="$2"
-  local transcript_path="$3"
-
-  if [ "$context_total" -gt 0 ] 2>/dev/null; then
-    echo "$((context_used * 100 / context_total))%"
-  elif [ -n "$transcript_path" ] && [ -f "$transcript_path" ]; then
-    local file_size
-    file_size=$(stat -f%z "$transcript_path" 2>/dev/null || stat -c%s "$transcript_path" 2>/dev/null || echo 0)
-    local file_kb=$((file_size / 1024))
-    local memory_percent=$((file_kb / 100))
-    [ "$memory_percent" -gt 99 ] && memory_percent=99
-    [ "$memory_percent" -lt 1 ] && memory_percent=1
-    echo "${memory_percent}%"
-  fi
 }
 
 # ============================================================================
@@ -135,17 +63,13 @@ build_payload() {
   local event="$2"
   local tool="$3"
   local project="$4"
-  local model="$5"
-  local memory="$6"
 
   jq -n \
     --arg state "$state" \
     --arg event "$event" \
     --arg tool "$tool" \
     --arg project "$project" \
-    --arg model "$model" \
-    --arg memory "$memory" \
-    '{state: $state, event: $event, tool: $tool, project: $project, model: $model, memory: $memory}'
+    '{state: $state, event: $event, tool: $tool, project: $project}'
 }
 
 # ============================================================================
@@ -224,41 +148,22 @@ main() {
   input=$(read_input)
 
   # Parse input fields
-  local event_name tool_name cwd transcript_path session_id model_raw
+  local event_name tool_name cwd transcript_path
   event_name=$(parse_json_field "$input" '.hook_event_name' 'Unknown')
   tool_name=$(parse_json_field "$input" '.tool_name' '')
   cwd=$(parse_json_field "$input" '.cwd' '')
   transcript_path=$(parse_json_field "$input" '.transcript_path' '')
-  session_id=$(parse_json_field "$input" '.session_id' '')
-  model_raw=$(parse_json_field "$input" '.model' '')
-
-  # Handle model caching
-  if [ -n "$model_raw" ] && [ "$model_raw" != "null" ]; then
-    cache_model "$model_raw" "$session_id"
-  else
-    model_raw=$(get_cached_model "$session_id")
-  fi
-
-  # Parse model name and version
-  local model_name
-  model_name=$(parse_model_name "$model_raw")
-
-  # Get memory usage
-  local context_used context_total memory_usage
-  context_used=$(parse_json_field "$input" '.context_window.used' '0')
-  context_total=$(parse_json_field "$input" '.context_window.total' '0')
-  memory_usage=$(get_memory_usage "$context_used" "$context_total" "$transcript_path")
 
   # Get project name and state
   local project_name state
   project_name=$(get_project_name "$cwd" "$transcript_path")
   state=$(get_state "$event_name")
 
-  debug_log "Event: $event_name, Tool: $tool_name, Project: $project_name, Model: $model_name, Memory: $memory_usage"
+  debug_log "Event: $event_name, Tool: $tool_name, Project: $project_name"
 
-  # Build payload
+  # Build payload (model and memory are provided by statusline.sh)
   local payload
-  payload=$(build_payload "$state" "$event_name" "$tool_name" "$project_name" "$model_name" "$memory_usage")
+  payload=$(build_payload "$state" "$event_name" "$tool_name" "$project_name")
 
   debug_log "Payload: $payload"
 
