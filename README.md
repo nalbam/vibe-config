@@ -1,4 +1,4 @@
-# claude-config
+# vibe-config
 
 Claude Code settings, agents, hooks, rules, and skills for consistent AI-assisted development environments.
 
@@ -6,7 +6,7 @@ Claude Code settings, agents, hooks, rules, and skills for consistent AI-assiste
 
 ```bash
 # Run sync script (clones repo if needed, then syncs to ~/.claude/)
-bash -c "$(curl -fsSL nalbam.github.io/claude-config/sync.sh)"
+bash -c "$(curl -fsSL nalbam.github.io/vibe-config/sync.sh)"
 
 # Or if already cloned
 ./sync.sh
@@ -24,7 +24,7 @@ bash -c "$(curl -fsSL nalbam.github.io/claude-config/sync.sh)"
 ## Directory Structure
 
 ```
-claude-config/
+vibe-config/
 ├── sync.sh                   # Sync script (clone/pull + sync to ~/.claude/)
 ├── CLAUDE.md                 # Global Claude Code instructions
 ├── settings.json             # Permissions, hooks, status line config

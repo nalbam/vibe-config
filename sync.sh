@@ -3,7 +3,7 @@
 ################################################################################
 # sync-claude.sh - Interactive Claude Code settings sync
 #
-# Clones or pulls claude-config repo, then syncs to ~/.claude/
+# Clones or pulls vibe-config repo, then syncs to ~/.claude/
 #
 # Usage:
 #   ./sync-claude.sh          # Interactive mode (default)
@@ -12,10 +12,10 @@
 ################################################################################
 
 # Repository
-REPO_URL="https://github.com/nalbam/claude-config.git"
+REPO_URL="https://github.com/nalbam/vibe-config.git"
 
 # Directories
-SOURCE_DIR="${HOME}/.claude-config"
+SOURCE_DIR="${HOME}/.vibe-config"
 TARGET_DIR="${HOME}/.claude"
 
 # Options
