@@ -156,6 +156,67 @@ C_YELLOW='\033[33m'
 C_RED='\033[31m'
 C_MAGENTA='\033[35m'
 C_BLUE='\033[34m'
+C_ORANGE='\033[38;5;208m'
+
+# ============================================================================
+# Formatting Functions
+# ============================================================================
+
+format_number() {
+  local num="$1"
+
+  # Handle empty or invalid input
+  if [ -z "$num" ] || [ "$num" = "null" ] || [ "$num" = "0" ]; then
+    echo "0"
+    return
+  fi
+
+  # Remove decimal part for comparison
+  local int_num="${num%.*}"
+
+  if [ "$int_num" -ge 1000000 ]; then
+    printf "%.1fM" "$(echo "scale=1; $num / 1000000" | bc)"
+  elif [ "$int_num" -ge 1000 ]; then
+    printf "%.1fK" "$(echo "scale=1; $num / 1000" | bc)"
+  else
+    echo "$int_num"
+  fi
+}
+
+format_duration() {
+  local ms="$1"
+
+  # Handle empty or invalid input
+  if [ -z "$ms" ] || [ "$ms" = "null" ] || [ "$ms" = "0" ]; then
+    echo "0s"
+    return
+  fi
+
+  local total_seconds=$((ms / 1000))
+  local hours=$((total_seconds / 3600))
+  local minutes=$(((total_seconds % 3600) / 60))
+  local seconds=$((total_seconds % 60))
+
+  if [ "$hours" -gt 0 ]; then
+    printf "%dh%dm" "$hours" "$minutes"
+  elif [ "$minutes" -gt 0 ]; then
+    printf "%dm%ds" "$minutes" "$seconds"
+  else
+    printf "%ds" "$seconds"
+  fi
+}
+
+format_cost() {
+  local cost="$1"
+
+  # Handle empty or invalid input
+  if [ -z "$cost" ] || [ "$cost" = "null" ]; then
+    echo "\$0.00"
+    return
+  fi
+
+  printf "\$%.2f" "$cost"
+}
 
 # ============================================================================
 # Progress Bar Functions
@@ -207,6 +268,12 @@ build_statusline() {
   local git_info="$3"
   local kube_info="$4"
   local context_usage="$5"
+  local input_tokens="$6"
+  local output_tokens="$7"
+  local cost="$8"
+  local duration="$9"
+  local lines_added="${10}"
+  local lines_removed="${11}"
 
   local SEP=" │ "
   local status_line=""
@@ -232,7 +299,37 @@ build_statusline() {
 
   # Model (⚡ icon) - remove "Claude " prefix, keep version
   local short_model="${model#Claude }"
-  status_line="${status_line}${SEP}${C_MAGENTA}⚡ ${short_model}${C_RESET}"
+  status_line="${status_line}${SEP}${C_MAGENTA}⚡${short_model}${C_RESET}"
+
+  # Token usage (📥 in / 📤 out)
+  if [ -n "$input_tokens" ] && [ "$input_tokens" != "0" ]; then
+    local in_fmt out_fmt
+    in_fmt=$(format_number "$input_tokens")
+    out_fmt=$(format_number "$output_tokens")
+    status_line="${status_line}${SEP}${C_CYAN}📥${in_fmt} 📤${out_fmt}${C_RESET}"
+  fi
+
+  # Cost (💰 icon)
+  if [ -n "$cost" ] && [ "$cost" != "0" ] && [ "$cost" != "null" ]; then
+    local cost_fmt
+    cost_fmt=$(format_cost "$cost")
+    status_line="${status_line}${SEP}${C_YELLOW}💰${cost_fmt}${C_RESET}"
+  fi
+
+  # Duration (⏱ icon)
+  if [ -n "$duration" ] && [ "$duration" != "0" ] && [ "$duration" != "null" ]; then
+    local duration_fmt
+    duration_fmt=$(format_duration "$duration")
+    status_line="${status_line}${SEP}${C_DIM}⏱ ${duration_fmt}${C_RESET}"
+  fi
+
+  # Lines changed (+/-)
+  if [ -n "$lines_added" ] && [ "$lines_added" != "0" ]; then
+    status_line="${status_line}${SEP}${C_GREEN}+${lines_added}${C_RESET}"
+    if [ -n "$lines_removed" ] && [ "$lines_removed" != "0" ]; then
+      status_line="${status_line} ${C_RED}-${lines_removed}${C_RESET}"
+    fi
+  fi
 
   # Context usage with progress bar (◔ icon)
   if [ -n "$context_usage" ]; then
@@ -268,11 +365,24 @@ main() {
   kube_info=$(get_kube_info)
   context_usage=$(get_context_usage "$input")
 
+  # Parse token usage
+  local input_tokens output_tokens
+  input_tokens=$(parse_json_field "$input" '.context_window.total_input_tokens' '0')
+  output_tokens=$(parse_json_field "$input" '.context_window.total_output_tokens' '0')
+
+  # Parse cost info
+  local cost duration lines_added lines_removed
+  cost=$(parse_json_field "$input" '.cost.total_cost_usd' '0')
+  duration=$(parse_json_field "$input" '.cost.total_duration_ms' '0')
+  lines_added=$(parse_json_field "$input" '.cost.total_lines_added' '0')
+  lines_removed=$(parse_json_field "$input" '.cost.total_lines_removed' '0')
+
   # Send project, model and context usage to Desktop App (if running)
   send_to_desktop "$dir_name" "$model_display" "$context_usage" &
 
   # Output statusline
-  build_statusline "$model_display" "$dir_name" "$git_info" "$kube_info" "$context_usage"
+  build_statusline "$model_display" "$dir_name" "$git_info" "$kube_info" "$context_usage" \
+    "$input_tokens" "$output_tokens" "$cost" "$duration" "$lines_added" "$lines_removed"
 }
 
 main
