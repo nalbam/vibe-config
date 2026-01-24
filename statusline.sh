@@ -116,8 +116,8 @@ send_to_desktop() {
   local model="$2"
   local memory="$3"
 
-  # Only send if CLAUDE_MONITOR_DESKTOP is set and app is running
-  [ -z "${CLAUDE_MONITOR_DESKTOP}" ] && return
+  # Only send if VIBE_MONITOR_DESKTOP is set and app is running
+  [ -z "${VIBE_MONITOR_DESKTOP}" ] && return
   [ -z "$project" ] && return
   is_desktop_running || return
 

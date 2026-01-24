@@ -1,14 +1,14 @@
 #!/bin/bash
 
 ################################################################################
-# sync-claude.sh - Interactive Claude Code settings sync
+# sync.sh - Interactive Claude Code settings sync
 #
 # Clones or pulls vibe-config repo, then syncs to ~/.claude/
 #
 # Usage:
-#   ./sync-claude.sh          # Interactive mode (default)
-#   ./sync-claude.sh -y       # Auto-yes mode (skip prompts)
-#   ./sync-claude.sh -n       # Dry-run mode (show changes only)
+#   ./sync.sh          # Interactive mode (default)
+#   ./sync.sh -y       # Auto-yes mode (skip prompts)
+#   ./sync.sh -n       # Dry-run mode (show changes only)
 ################################################################################
 
 # Repository

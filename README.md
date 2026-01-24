@@ -119,7 +119,7 @@ The `notify.sh` hook supports multiple platforms:
 - **ntfy.sh**: Push notifications (set `NTFY_TOPIC`)
 - **Slack**: Webhook notifications (set `SLACK_WEBHOOK_URL`)
 
-### Claude Monitor
+### Vibe Monitor
 
 Display Claude Code status in real-time:
 
