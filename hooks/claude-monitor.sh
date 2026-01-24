@@ -4,6 +4,11 @@
 # Desktop App (localhost:19280) + ESP32 (USB Serial / HTTP)
 
 DEBUG="${DEBUG:-0}"
+MODEL_CACHE_DIR="$HOME/.claude/.cache"
+
+# ============================================================================
+# Utility Functions
+# ============================================================================
 
 debug_log() {
   if [[ "$DEBUG" == "1" ]]; then
@@ -11,147 +16,147 @@ debug_log() {
   fi
 }
 
-# 입력 읽기 (timeout으로 전체 stdin 읽기)
-input=$(timeout 5 cat 2>/dev/null || cat)
+capitalize() {
+  local str="$1"
+  echo "$(echo "${str:0:1}" | tr '[:lower:]' '[:upper:]')${str:1}"
+}
 
-# 이벤트 정보 추출 (here-string 사용으로 큰 JSON 안정적 처리)
-event_name=$(jq -r '.hook_event_name // "Unknown"' <<< "$input" 2>/dev/null)
-tool_name=$(jq -r '.tool_name // ""' <<< "$input" 2>/dev/null)
-cwd=$(jq -r '.cwd // ""' <<< "$input" 2>/dev/null)
-transcript_path=$(jq -r '.transcript_path // ""' <<< "$input" 2>/dev/null)
+# ============================================================================
+# Input Parsing Functions
+# ============================================================================
 
-# 모델 정보 추출 (SessionStart에서만 전달됨)
-# 세션별로 model 정보를 캐싱하여 다른 이벤트에서도 사용
-model_cache_dir="$HOME/.claude/.cache"
-mkdir -p "$model_cache_dir" 2>/dev/null
+read_input() {
+  timeout 5 cat 2>/dev/null || cat
+}
 
-# 세션 ID 추출 (캐시 키로 사용)
-session_id=$(jq -r '.session_id // ""' <<< "$input" 2>/dev/null)
+parse_json_field() {
+  local input="$1"
+  local field="$2"
+  local default="${3:-}"
+  jq -r "$field // \"$default\"" <<< "$input" 2>/dev/null
+}
 
-# model 필드 추출 시도
-model_raw=$(jq -r '.model // ""' <<< "$input" 2>/dev/null)
+# ============================================================================
+# Model Functions
+# ============================================================================
 
-if [ -n "$model_raw" ] && [ "$model_raw" != "null" ]; then
-  # SessionStart: model 정보가 있으면 캐싱
-  echo "$model_raw" > "$model_cache_dir/model_current" 2>/dev/null
+cache_model() {
+  local model="$1"
+  local session_id="$2"
+
+  mkdir -p "$MODEL_CACHE_DIR" 2>/dev/null
+  echo "$model" > "$MODEL_CACHE_DIR/model_current" 2>/dev/null
   if [ -n "$session_id" ]; then
-    echo "$model_raw" > "$model_cache_dir/model_$session_id" 2>/dev/null
+    echo "$model" > "$MODEL_CACHE_DIR/model_$session_id" 2>/dev/null
   fi
-else
-  # 다른 이벤트: 캐시에서 읽기
-  if [ -n "$session_id" ] && [ -f "$model_cache_dir/model_$session_id" ]; then
-    model_raw=$(cat "$model_cache_dir/model_$session_id" 2>/dev/null)
-  elif [ -f "$model_cache_dir/model_current" ]; then
-    model_raw=$(cat "$model_cache_dir/model_current" 2>/dev/null)
-  fi
-fi
+}
 
-# 모델 이름과 버전 추출 (claude-opus-4-5-20251101 -> Opus 4.5)
-model_name=""
-if [ -n "$model_raw" ] && [ "$model_raw" != "null" ]; then
-  # 패턴: claude-{name}-{major}-{minor}-{date} 또는 claude-{name}-{major}-{date}
+get_cached_model() {
+  local session_id="$1"
+
+  if [ -n "$session_id" ] && [ -f "$MODEL_CACHE_DIR/model_$session_id" ]; then
+    cat "$MODEL_CACHE_DIR/model_$session_id" 2>/dev/null
+  elif [ -f "$MODEL_CACHE_DIR/model_current" ]; then
+    cat "$MODEL_CACHE_DIR/model_current" 2>/dev/null
+  fi
+}
+
+parse_model_name() {
+  local model_raw="$1"
+
+  [ -z "$model_raw" ] || [ "$model_raw" = "null" ] && return
+
+  # Pattern: claude-{name}-{major}-{minor}-{date} or claude-{name}-{major}-{date}
   if [[ "$model_raw" =~ ^claude-([a-z]+)-([0-9]+)-([0-9]+)-[0-9]+$ ]]; then
     # claude-opus-4-5-20251101 -> Opus 4.5
-    name="${BASH_REMATCH[1]}"
-    major="${BASH_REMATCH[2]}"
-    minor="${BASH_REMATCH[3]}"
-    name="$(echo "${name:0:1}" | tr '[:lower:]' '[:upper:]')${name:1}"
-    model_name="$name $major.$minor"
+    echo "$(capitalize "${BASH_REMATCH[1]}") ${BASH_REMATCH[2]}.${BASH_REMATCH[3]}"
   elif [[ "$model_raw" =~ ^claude-([a-z]+)-([0-9]+)-[0-9]+$ ]]; then
     # claude-sonnet-4-20250514 -> Sonnet 4
-    name="${BASH_REMATCH[1]}"
-    version="${BASH_REMATCH[2]}"
-    name="$(echo "${name:0:1}" | tr '[:lower:]' '[:upper:]')${name:1}"
-    model_name="$name $version"
+    echo "$(capitalize "${BASH_REMATCH[1]}") ${BASH_REMATCH[2]}"
   elif [[ "$model_raw" =~ ^claude-([a-z]+) ]]; then
     # claude-sonnet -> Sonnet
-    name="${BASH_REMATCH[1]}"
-    name="$(echo "${name:0:1}" | tr '[:lower:]' '[:upper:]')${name:1}"
-    model_name="$name"
+    capitalize "${BASH_REMATCH[1]}"
   else
-    model_name="$model_raw"
+    echo "$model_raw"
   fi
-fi
+}
 
-# 메모리(컨텍스트) 사용량 추출
-# context_window 정보가 있으면 사용, 없으면 transcript 파일 크기로 추정
-context_used=$(jq -r '.context_window.used // 0' <<< "$input" 2>/dev/null)
-context_total=$(jq -r '.context_window.total // 0' <<< "$input" 2>/dev/null)
+# ============================================================================
+# Memory Functions
+# ============================================================================
 
-if [ "$context_total" -gt 0 ] 2>/dev/null; then
-  # 퍼센트 계산
-  memory_percent=$((context_used * 100 / context_total))
-  memory_usage="${memory_percent}%"
-elif [ -n "$transcript_path" ] && [ -f "$transcript_path" ]; then
-  # transcript 파일 크기로 추정 (1MB = ~10% 가정, 최대 100%)
-  file_size=$(stat -f%z "$transcript_path" 2>/dev/null || stat -c%s "$transcript_path" 2>/dev/null || echo 0)
-  # KB 단위로 변환
-  file_kb=$((file_size / 1024))
-  # 대략적인 퍼센트 추정 (100KB당 1%, 최대 99%)
-  memory_percent=$((file_kb / 100))
-  [ "$memory_percent" -gt 99 ] && memory_percent=99
-  [ "$memory_percent" -lt 1 ] && memory_percent=1
-  memory_usage="${memory_percent}%"
-else
-  memory_usage=""
-fi
+get_memory_usage() {
+  local context_used="$1"
+  local context_total="$2"
+  local transcript_path="$3"
 
-# jq 실패 시 기본값
-[ -z "$event_name" ] && event_name="Unknown"
+  if [ "$context_total" -gt 0 ] 2>/dev/null; then
+    echo "$((context_used * 100 / context_total))%"
+  elif [ -n "$transcript_path" ] && [ -f "$transcript_path" ]; then
+    local file_size
+    file_size=$(stat -f%z "$transcript_path" 2>/dev/null || stat -c%s "$transcript_path" 2>/dev/null || echo 0)
+    local file_kb=$((file_size / 1024))
+    local memory_percent=$((file_kb / 100))
+    [ "$memory_percent" -gt 99 ] && memory_percent=99
+    [ "$memory_percent" -lt 1 ] && memory_percent=1
+    echo "${memory_percent}%"
+  fi
+}
 
-# 프로젝트 이름 추출 (cwd > transcript_path)
-if [ -n "$cwd" ]; then
-  project_name=$(basename "$cwd")
-elif [ -n "$transcript_path" ]; then
-  # transcript_path: ~/.claude/projects/project-name/session.jsonl
-  project_name=$(basename "$(dirname "$transcript_path")")
-else
-  project_name=""
-fi
+# ============================================================================
+# State Functions
+# ============================================================================
 
-debug_log "Event: $event_name, Tool: $tool_name, Project: $project_name, Model: $model_name, Memory: $memory_usage"
+get_project_name() {
+  local cwd="$1"
+  local transcript_path="$2"
 
-# 상태 결정
-case "$event_name" in
-  "SessionStart")
-    state="session_start"
-    ;;
-  "PreToolUse")
-    state="working"
-    ;;
-  "PostToolUse")
-    state="working"
-    ;;
-  "Stop")
-    state="tool_done"
-    ;;
-  "Notification")
-    state="notification"
-    ;;
-  *)
-    state="unknown"
-    ;;
-esac
+  if [ -n "$cwd" ]; then
+    basename "$cwd"
+  elif [ -n "$transcript_path" ]; then
+    basename "$(dirname "$transcript_path")"
+  fi
+}
 
-# JSON 페이로드 생성
-payload=$(jq -n \
-  --arg state "$state" \
-  --arg event "$event_name" \
-  --arg tool "$tool_name" \
-  --arg project "$project_name" \
-  --arg model "$model_name" \
-  --arg memory "$memory_usage" \
-  '{state: $state, event: $event, tool: $tool, project: $project, model: $model, memory: $memory}')
+get_state() {
+  local event_name="$1"
 
-debug_log "Payload: $payload"
+  case "$event_name" in
+    "SessionStart") echo "session_start" ;;
+    "PreToolUse"|"PostToolUse") echo "working" ;;
+    "Stop") echo "tool_done" ;;
+    "Notification") echo "notification" ;;
+    *) echo "unknown" ;;
+  esac
+}
 
-# 전송 함수: USB 시리얼
+build_payload() {
+  local state="$1"
+  local event="$2"
+  local tool="$3"
+  local project="$4"
+  local model="$5"
+  local memory="$6"
+
+  jq -n \
+    --arg state "$state" \
+    --arg event "$event" \
+    --arg tool "$tool" \
+    --arg project "$project" \
+    --arg model "$model" \
+    --arg memory "$memory" \
+    '{state: $state, event: $event, tool: $tool, project: $project, model: $model, memory: $memory}'
+}
+
+# ============================================================================
+# Send Functions
+# ============================================================================
+
 send_serial() {
   local port="$1"
   local data="$2"
 
   if [ -c "$port" ]; then
-    # 시리얼 포트 설정 (115200 baud)
     stty -f "$port" 115200 2>/dev/null || stty -F "$port" 115200 2>/dev/null
     echo "$data" > "$port" 2>/dev/null
     return $?
@@ -159,7 +164,6 @@ send_serial() {
   return 1
 }
 
-# 전송 함수: HTTP
 send_http() {
   local url="$1"
   local data="$2"
@@ -170,10 +174,8 @@ send_http() {
     --connect-timeout 2 \
     --max-time 5 \
     > /dev/null 2>&1
-  return $?
 }
 
-# 전송 함수: Desktop App (localhost:19280)
 send_desktop() {
   local data="$1"
 
@@ -183,19 +185,15 @@ send_desktop() {
     --connect-timeout 1 \
     --max-time 2 \
     > /dev/null 2>&1
-  return $?
 }
 
-# Desktop App 실행 여부 확인
 is_desktop_running() {
   curl -s "http://127.0.0.1:19280/health" \
     --connect-timeout 1 \
     --max-time 1 \
     > /dev/null 2>&1
-  return $?
 }
 
-# Desktop App 창 보이기 및 위치 재설정
 show_desktop_window() {
   curl -s -X POST "http://127.0.0.1:19280/show" \
     --connect-timeout 1 \
@@ -203,7 +201,6 @@ show_desktop_window() {
     > /dev/null 2>&1
 }
 
-# Desktop App 실행
 launch_desktop() {
   local app_dir="${CLAUDE_MONITOR_DESKTOP:-$HOME/workspace/github.com/nalbam/claude-monitor/desktop}"
   local start_script="$app_dir/start.sh"
@@ -217,41 +214,88 @@ launch_desktop() {
   fi
 }
 
-# 전송 시도
+# ============================================================================
+# Main
+# ============================================================================
 
-# 1. Desktop App (CLAUDE_MONITOR_DESKTOP 설정 시)
-if [ -n "${CLAUDE_MONITOR_DESKTOP}" ]; then
-  # SessionStart 시 앱이 실행 중이면 창 보이기, 아니면 자동 실행
-  if [ "$event_name" = "SessionStart" ]; then
-    if is_desktop_running; then
-      debug_log "Desktop App running, showing window..."
-      show_desktop_window
+main() {
+  # Read input
+  local input
+  input=$(read_input)
+
+  # Parse input fields
+  local event_name tool_name cwd transcript_path session_id model_raw
+  event_name=$(parse_json_field "$input" '.hook_event_name' 'Unknown')
+  tool_name=$(parse_json_field "$input" '.tool_name' '')
+  cwd=$(parse_json_field "$input" '.cwd' '')
+  transcript_path=$(parse_json_field "$input" '.transcript_path' '')
+  session_id=$(parse_json_field "$input" '.session_id' '')
+  model_raw=$(parse_json_field "$input" '.model' '')
+
+  # Handle model caching
+  if [ -n "$model_raw" ] && [ "$model_raw" != "null" ]; then
+    cache_model "$model_raw" "$session_id"
+  else
+    model_raw=$(get_cached_model "$session_id")
+  fi
+
+  # Parse model name and version
+  local model_name
+  model_name=$(parse_model_name "$model_raw")
+
+  # Get memory usage
+  local context_used context_total memory_usage
+  context_used=$(parse_json_field "$input" '.context_window.used' '0')
+  context_total=$(parse_json_field "$input" '.context_window.total' '0')
+  memory_usage=$(get_memory_usage "$context_used" "$context_total" "$transcript_path")
+
+  # Get project name and state
+  local project_name state
+  project_name=$(get_project_name "$cwd" "$transcript_path")
+  state=$(get_state "$event_name")
+
+  debug_log "Event: $event_name, Tool: $tool_name, Project: $project_name, Model: $model_name, Memory: $memory_usage"
+
+  # Build payload
+  local payload
+  payload=$(build_payload "$state" "$event_name" "$tool_name" "$project_name" "$model_name" "$memory_usage")
+
+  debug_log "Payload: $payload"
+
+  # Send to Desktop App
+  if [ -n "${CLAUDE_MONITOR_DESKTOP}" ]; then
+    if [ "$event_name" = "SessionStart" ]; then
+      if is_desktop_running; then
+        debug_log "Desktop App running, showing window..."
+        show_desktop_window
+      else
+        debug_log "Desktop App not running, launching..."
+        launch_desktop
+      fi
+    fi
+    send_desktop "$payload"
+  fi
+
+  # Send to ESP32 USB Serial
+  if [ -n "${ESP32_SERIAL_PORT}" ]; then
+    debug_log "Trying USB serial: ${ESP32_SERIAL_PORT}"
+    if send_serial "${ESP32_SERIAL_PORT}" "$payload"; then
+      debug_log "Sent via USB serial"
     else
-      debug_log "Desktop App not running, launching..."
-      launch_desktop
+      debug_log "USB serial failed"
     fi
   fi
-  send_desktop "$payload"
-fi
 
-# 2. ESP32 USB 시리얼 (ESP32_SERIAL_PORT 설정 시)
-if [ -n "${ESP32_SERIAL_PORT}" ]; then
-  debug_log "Trying USB serial: ${ESP32_SERIAL_PORT}"
-  if send_serial "${ESP32_SERIAL_PORT}" "$payload"; then
-    debug_log "Sent via USB serial"
-  else
-    debug_log "USB serial failed"
+  # Send to ESP32 HTTP
+  if [ -n "${ESP32_HTTP_URL}" ]; then
+    debug_log "Trying HTTP: ${ESP32_HTTP_URL}"
+    if send_http "${ESP32_HTTP_URL}" "$payload"; then
+      debug_log "Sent via HTTP"
+    else
+      debug_log "HTTP failed"
+    fi
   fi
-fi
+}
 
-# 3. ESP32 HTTP (ESP32_HTTP_URL 설정 시)
-if [ -n "${ESP32_HTTP_URL}" ]; then
-  debug_log "Trying HTTP: ${ESP32_HTTP_URL}"
-  if send_http "${ESP32_HTTP_URL}" "$payload"; then
-    debug_log "Sent via HTTP"
-  else
-    debug_log "HTTP failed"
-  fi
-fi
-
+main
 exit 0

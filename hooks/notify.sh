@@ -1,11 +1,15 @@
 #!/bin/bash
 
-# Debug mode (set DEBUG=1 to enable)
-DEBUG="${DEBUG:-0}"
+# Claude Code Notification Hook
+# Supports: macOS, WSL, ntfy.sh, Slack
 
-# Notification settings (default: enabled)
+DEBUG="${DEBUG:-0}"
 NOTIFY_SYSTEM="${NOTIFY_SYSTEM:-1}"
 NOTIFY_SOUND="${NOTIFY_SOUND:-1}"
+
+# ============================================================================
+# Utility Functions
+# ============================================================================
 
 debug_log() {
   if [[ "$DEBUG" == "1" ]]; then
@@ -13,141 +17,247 @@ debug_log() {
   fi
 }
 
-# 입력 읽기 (타임아웃 10초)
-read -t 10 input
+# ============================================================================
+# Input Parsing Functions
+# ============================================================================
 
-# 이벤트 정보 추출
-event_name=$(echo "$input" | jq -r '.hook_event_name' 2>/dev/null || echo "Unknown")
-cwd=$(echo "$input" | jq -r '.cwd // empty' 2>/dev/null)
-transcript_path=$(echo "$input" | jq -r '.transcript_path // empty' 2>/dev/null)
+read_input() {
+  local input
+  read -t 10 input
+  echo "$input"
+}
 
-# 프로젝트 이름 추출
-if [ -n "$cwd" ]; then
-  project_name=$(basename "$cwd")
-elif [ -n "$transcript_path" ]; then
-  # transcript_path: ~/.claude/projects/project-name/session.jsonl
-  project_name=$(basename "$(dirname "$transcript_path")")
-else
-  project_name=""
-fi
+parse_json_field() {
+  local input="$1"
+  local field="$2"
+  local default="${3:-}"
+  echo "$input" | jq -r "$field // \"$default\"" 2>/dev/null
+}
 
-debug_log "Event: $event_name, Project: $project_name"
+get_project_name() {
+  local cwd="$1"
+  local transcript_path="$2"
 
-# 메시지 구성
-case "$event_name" in
-  "Stop")
-    title="Claude Code"
-    if [ -n "$project_name" ]; then
-      message="[$project_name] 작업 완료"
-      slack_message=":white_check_mark: Claude Code [$project_name] 작업 완료"
-    else
-      message="작업 완료"
-      slack_message=":white_check_mark: Claude Code 작업 완료"
-    fi
-    ;;
-  "Notification")
-    title="Claude Code"
-    if [ -n "$project_name" ]; then
-      message="[$project_name] 입력을 기다리고 있습니다"
-      slack_message=":question: Claude Code [$project_name] 입력을 기다리고 있습니다"
-    else
-      message="입력을 기다리고 있습니다"
-      slack_message=":question: Claude Code가 입력을 기다리고 있습니다"
-    fi
-    ;;
-  *)
-    title="Claude Code"
-    message="$event_name"
-    slack_message=":bell: Claude Code: $event_name"
-    ;;
-esac
+  if [ -n "$cwd" ]; then
+    basename "$cwd"
+  elif [ -n "$transcript_path" ]; then
+    basename "$(dirname "$transcript_path")"
+  fi
+}
 
-# macOS 시스템 알림 + 사운드
-if [[ "$OSTYPE" == "darwin"* ]]; then
-  # 시스템 알림
-  if [[ "$NOTIFY_SYSTEM" == "1" ]]; then
-    debug_log "Sending macOS notification: $message"
-    if osascript -e "display notification \"$message\" with title \"$title\"" 2>&1 | grep -v "^$" >&2; then
-      debug_log "macOS notification sent successfully"
-    fi
-  else
+# ============================================================================
+# Message Functions
+# ============================================================================
+
+build_message() {
+  local event_name="$1"
+  local project_name="$2"
+  local msg_type="$3"  # title, message, slack
+
+  case "$event_name" in
+    "Stop")
+      case "$msg_type" in
+        title) echo "Claude Code" ;;
+        message)
+          if [ -n "$project_name" ]; then
+            echo "[$project_name] 작업 완료"
+          else
+            echo "작업 완료"
+          fi
+          ;;
+        slack)
+          if [ -n "$project_name" ]; then
+            echo ":white_check_mark: Claude Code [$project_name] 작업 완료"
+          else
+            echo ":white_check_mark: Claude Code 작업 완료"
+          fi
+          ;;
+      esac
+      ;;
+    "Notification")
+      case "$msg_type" in
+        title) echo "Claude Code" ;;
+        message)
+          if [ -n "$project_name" ]; then
+            echo "[$project_name] 입력을 기다리고 있습니다"
+          else
+            echo "입력을 기다리고 있습니다"
+          fi
+          ;;
+        slack)
+          if [ -n "$project_name" ]; then
+            echo ":question: Claude Code [$project_name] 입력을 기다리고 있습니다"
+          else
+            echo ":question: Claude Code가 입력을 기다리고 있습니다"
+          fi
+          ;;
+      esac
+      ;;
+    *)
+      case "$msg_type" in
+        title) echo "Claude Code" ;;
+        message) echo "$event_name" ;;
+        slack) echo ":bell: Claude Code: $event_name" ;;
+      esac
+      ;;
+  esac
+}
+
+get_sound_file() {
+  local event_name="$1"
+
+  case "$event_name" in
+    "Stop") echo ~/.claude/sounds/ding1.mp3 ;;
+    "Notification") echo ~/.claude/sounds/ding2.mp3 ;;
+    *) echo ~/.claude/sounds/ding3.mp3 ;;
+  esac
+}
+
+# ============================================================================
+# Notification Functions
+# ============================================================================
+
+notify_macos() {
+  local title="$1"
+  local message="$2"
+
+  [[ "$NOTIFY_SYSTEM" != "1" ]] && {
     debug_log "macOS notification disabled (NOTIFY_SYSTEM=0)"
+    return
+  }
+
+  debug_log "Sending macOS notification: $message"
+  if osascript -e "display notification \"$message\" with title \"$title\"" 2>&1 | grep -v "^$" >&2; then
+    debug_log "macOS notification sent successfully"
   fi
+}
 
-  # 사운드 재생 (nohup으로 백그라운드 실행)
-  if [[ "$NOTIFY_SOUND" == "1" ]]; then
-    case "$event_name" in
-      "Stop")
-        sound_file=~/.claude/sounds/ding1.mp3
-        ;;
-      "Notification")
-        sound_file=~/.claude/sounds/ding2.mp3
-        ;;
-      *)
-        sound_file=~/.claude/sounds/ding3.mp3
-        ;;
-    esac
+play_sound_macos() {
+  local sound_file="$1"
 
-    if [ -f "$sound_file" ]; then
-      debug_log "Playing sound: $sound_file"
-      if [[ "$DEBUG" == "1" ]]; then
-        afplay "$sound_file" 2>&1 | grep -v "^$" >&2
-      else
-        nohup afplay "$sound_file" >/dev/null 2>&1 &
-      fi
-    else
-      debug_log "Sound file not found: $sound_file"
-    fi
-  else
+  [[ "$NOTIFY_SOUND" != "1" ]] && {
     debug_log "Sound notification disabled (NOTIFY_SOUND=0)"
-  fi
-fi
+    return
+  }
 
-# WSL (Windows Subsystem for Linux) 비프음 알림
-if grep -qi microsoft /proc/version 2>/dev/null; then
-  debug_log "WSL detected, sending beep notification"
-  if command -v powershell.exe &> /dev/null; then
+  if [ -f "$sound_file" ]; then
+    debug_log "Playing sound: $sound_file"
     if [[ "$DEBUG" == "1" ]]; then
-      powershell.exe -Command "[console]::beep(800, 300)" 2>&1 | grep -v "^$" >&2
+      afplay "$sound_file" 2>&1 | grep -v "^$" >&2
     else
-      powershell.exe -Command "[console]::beep(800, 300)" 2>/dev/null &
+      nohup afplay "$sound_file" >/dev/null 2>&1 &
     fi
-    debug_log "WSL beep sent"
   else
-    debug_log "powershell.exe not found"
+    debug_log "Sound file not found: $sound_file"
   fi
-fi
+}
 
-# ntfy.sh 알림 (NTFY_TOPIC이 설정된 경우만)
-if [ -n "${NTFY_TOPIC}" ]; then
-  debug_log "Sending ntfy.sh notification to topic: ${NTFY_TOPIC}"
+notify_wsl() {
+  debug_log "WSL detected, sending beep notification"
+
+  if ! command -v powershell.exe &> /dev/null; then
+    debug_log "powershell.exe not found"
+    return
+  fi
+
   if [[ "$DEBUG" == "1" ]]; then
-    curl -X POST "https://ntfy.sh/${NTFY_TOPIC}" \
+    powershell.exe -Command "[console]::beep(800, 300)" 2>&1 | grep -v "^$" >&2
+  else
+    powershell.exe -Command "[console]::beep(800, 300)" 2>/dev/null &
+  fi
+  debug_log "WSL beep sent"
+}
+
+notify_ntfy() {
+  local title="$1"
+  local message="$2"
+  local topic="${NTFY_TOPIC}"
+
+  [ -z "$topic" ] && return
+
+  debug_log "Sending ntfy.sh notification to topic: $topic"
+  if [[ "$DEBUG" == "1" ]]; then
+    curl -X POST "https://ntfy.sh/${topic}" \
       -H "Title: ${title}" \
       -H "Tags: robot" \
       -d "${message}" 2>&1 | head -3 >&2
   else
-    curl -s -X POST "https://ntfy.sh/${NTFY_TOPIC}" \
+    curl -s -X POST "https://ntfy.sh/${topic}" \
       -H "Title: ${title}" \
       -H "Tags: robot" \
       -d "${message}" > /dev/null 2>&1
   fi
   debug_log "ntfy.sh notification sent"
-fi
+}
 
-# Slack 알림 (SLACK_WEBHOOK_URL이 설정된 경우만)
-if [ -n "${SLACK_WEBHOOK_URL}" ]; then
+notify_slack() {
+  local message="$1"
+  local webhook_url="${SLACK_WEBHOOK_URL}"
+
+  [ -z "$webhook_url" ] && return
+
   debug_log "Sending Slack notification"
   if [[ "$DEBUG" == "1" ]]; then
     curl -X POST -H 'Content-type: application/json' \
-      --data "{\"text\":\"$slack_message\"}" \
-      "${SLACK_WEBHOOK_URL}" 2>&1 | head -3 >&2
+      --data "{\"text\":\"$message\"}" \
+      "$webhook_url" 2>&1 | head -3 >&2
   else
     curl -s -X POST -H 'Content-type: application/json' \
-      --data "{\"text\":\"$slack_message\"}" \
-      "${SLACK_WEBHOOK_URL}" > /dev/null 2>&1
+      --data "{\"text\":\"$message\"}" \
+      "$webhook_url" > /dev/null 2>&1
   fi
   debug_log "Slack notification sent"
-fi
+}
 
+# ============================================================================
+# Platform Detection
+# ============================================================================
+
+is_macos() {
+  [[ "$OSTYPE" == "darwin"* ]]
+}
+
+is_wsl() {
+  grep -qi microsoft /proc/version 2>/dev/null
+}
+
+# ============================================================================
+# Main
+# ============================================================================
+
+main() {
+  # Read and parse input
+  local input
+  input=$(read_input)
+
+  local event_name cwd transcript_path project_name
+  event_name=$(parse_json_field "$input" '.hook_event_name' 'Unknown')
+  cwd=$(parse_json_field "$input" '.cwd' '')
+  transcript_path=$(parse_json_field "$input" '.transcript_path' '')
+  project_name=$(get_project_name "$cwd" "$transcript_path")
+
+  debug_log "Event: $event_name, Project: $project_name"
+
+  # Build messages
+  local title message slack_message
+  title=$(build_message "$event_name" "$project_name" "title")
+  message=$(build_message "$event_name" "$project_name" "message")
+  slack_message=$(build_message "$event_name" "$project_name" "slack")
+
+  # Send notifications based on platform
+  if is_macos; then
+    notify_macos "$title" "$message"
+    play_sound_macos "$(get_sound_file "$event_name")"
+  fi
+
+  if is_wsl; then
+    notify_wsl
+  fi
+
+  # External notifications
+  notify_ntfy "$title" "$message"
+  notify_slack "$slack_message"
+}
+
+main
 exit 0
