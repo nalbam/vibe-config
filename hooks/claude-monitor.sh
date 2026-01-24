@@ -46,15 +46,31 @@ else
   fi
 fi
 
-# 모델 이름 단순화 (claude-sonnet-4-... -> sonnet)
+# 모델 이름과 버전 추출 (claude-opus-4-5-20251101 -> Opus 4.5)
 model_name=""
 if [ -n "$model_raw" ] && [ "$model_raw" != "null" ]; then
-  case "$model_raw" in
-    *opus*) model_name="opus" ;;
-    *sonnet*) model_name="sonnet" ;;
-    *haiku*) model_name="haiku" ;;
-    *) model_name="$model_raw" ;;
-  esac
+  # 패턴: claude-{name}-{major}-{minor}-{date} 또는 claude-{name}-{major}-{date}
+  if [[ "$model_raw" =~ ^claude-([a-z]+)-([0-9]+)-([0-9]+)-[0-9]+$ ]]; then
+    # claude-opus-4-5-20251101 -> Opus 4.5
+    name="${BASH_REMATCH[1]}"
+    major="${BASH_REMATCH[2]}"
+    minor="${BASH_REMATCH[3]}"
+    name="$(echo "${name:0:1}" | tr '[:lower:]' '[:upper:]')${name:1}"
+    model_name="$name $major.$minor"
+  elif [[ "$model_raw" =~ ^claude-([a-z]+)-([0-9]+)-[0-9]+$ ]]; then
+    # claude-sonnet-4-20250514 -> Sonnet 4
+    name="${BASH_REMATCH[1]}"
+    version="${BASH_REMATCH[2]}"
+    name="$(echo "${name:0:1}" | tr '[:lower:]' '[:upper:]')${name:1}"
+    model_name="$name $version"
+  elif [[ "$model_raw" =~ ^claude-([a-z]+) ]]; then
+    # claude-sonnet -> Sonnet
+    name="${BASH_REMATCH[1]}"
+    name="$(echo "${name:0:1}" | tr '[:lower:]' '[:upper:]')${name:1}"
+    model_name="$name"
+  else
+    model_name="$model_raw"
+  fi
 fi
 
 # 메모리(컨텍스트) 사용량 추출
