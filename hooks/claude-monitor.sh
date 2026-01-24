@@ -202,61 +202,40 @@ launch_desktop() {
 }
 
 # 전송 시도
-sent=false
 
-# 0. Desktop App 시도
-# SessionStart 시 앱이 실행 중이면 창 보이기, 아니면 자동 실행
-if [ "$event_name" = "SessionStart" ]; then
-  if is_desktop_running; then
-    debug_log "Desktop App running, showing window..."
-    show_desktop_window
-  else
-    debug_log "Desktop App not running, launching..."
-    launch_desktop
+# 1. Desktop App (CLAUDE_MONITOR_DESKTOP 설정 시)
+if [ -n "${CLAUDE_MONITOR_DESKTOP}" ]; then
+  # SessionStart 시 앱이 실행 중이면 창 보이기, 아니면 자동 실행
+  if [ "$event_name" = "SessionStart" ]; then
+    if is_desktop_running; then
+      debug_log "Desktop App running, showing window..."
+      show_desktop_window
+    else
+      debug_log "Desktop App not running, launching..."
+      launch_desktop
+    fi
   fi
+  send_desktop "$payload"
 fi
 
-send_desktop "$payload"
-
-# 1. USB 시리얼 시도
+# 2. ESP32 USB 시리얼 (ESP32_SERIAL_PORT 설정 시)
 if [ -n "${ESP32_SERIAL_PORT}" ]; then
   debug_log "Trying USB serial: ${ESP32_SERIAL_PORT}"
   if send_serial "${ESP32_SERIAL_PORT}" "$payload"; then
     debug_log "Sent via USB serial"
-    sent=true
   else
     debug_log "USB serial failed"
   fi
 fi
 
-# 2. HTTP fallback
-if [ "$sent" = false ] && [ -n "${ESP32_HTTP_URL}" ]; then
+# 3. ESP32 HTTP (ESP32_HTTP_URL 설정 시)
+if [ -n "${ESP32_HTTP_URL}" ]; then
   debug_log "Trying HTTP: ${ESP32_HTTP_URL}"
   if send_http "${ESP32_HTTP_URL}" "$payload"; then
     debug_log "Sent via HTTP"
-    sent=true
   else
     debug_log "HTTP failed"
   fi
-fi
-
-# 3. 자동 감지 (설정 없을 때)
-if [ "$sent" = false ] && [ -z "${ESP32_SERIAL_PORT}" ] && [ -z "${ESP32_HTTP_URL}" ]; then
-  # macOS USB 시리얼 자동 감지
-  for port in /dev/cu.usbserial-* /dev/cu.usbmodem* /dev/cu.wchusbserial*; do
-    if [ -c "$port" ]; then
-      debug_log "Auto-detected serial port: $port"
-      if send_serial "$port" "$payload"; then
-        debug_log "Sent via auto-detected serial"
-        sent=true
-        break
-      fi
-    fi
-  done
-fi
-
-if [ "$sent" = false ]; then
-  debug_log "No ESP32 connection available"
 fi
 
 exit 0
