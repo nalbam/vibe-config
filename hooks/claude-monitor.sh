@@ -126,15 +126,14 @@ show_desktop_window() {
 }
 
 launch_desktop() {
-  local app_dir="${CLAUDE_MONITOR_DESKTOP:-$HOME/workspace/github.com/nalbam/claude-monitor/desktop}"
-  local start_script="$app_dir/start.sh"
+  local start_script="$CLAUDE_MONITOR_DESKTOP/start.sh"
 
   if [ -x "$start_script" ]; then
-    debug_log "Launching Desktop App via start.sh: $start_script"
+    debug_log "Launching Desktop App: $start_script"
     "$start_script" > /dev/null 2>&1
     sleep 2
   else
-    debug_log "Desktop App directory not found: $app_dir"
+    debug_log "Desktop App start script not found: $start_script"
   fi
 }
 
