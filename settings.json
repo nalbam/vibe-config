@@ -186,8 +186,7 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "npx -y ccusage statusline",
-    "padding": 0
+    "command": "~/.claude/statusline.sh"
   },
   "enabledPlugins": {
     "context7@claude-plugins-official": true,
