@@ -19,7 +19,7 @@ SOURCE_DIR="${HOME}/.claude-config"
 TARGET_DIR="${HOME}/.claude"
 
 # Options
-AUTO_YES=false
+AUTO_YES=true
 DRY_RUN=false
 SYNC_ALL=false
 
