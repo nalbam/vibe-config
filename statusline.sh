@@ -316,11 +316,11 @@ build_statusline() {
     status_line="${status_line}${SEP}${C_YELLOW}💰 ${cost_fmt}${C_RESET}"
   fi
 
-  # Duration (⏱ icon)
+  # Duration (⏱️ icon)
   if [ -n "$duration" ] && [ "$duration" != "0" ] && [ "$duration" != "null" ]; then
     local duration_fmt
     duration_fmt=$(format_duration "$duration")
-    status_line="${status_line}${SEP}${C_DIM}⏱ ${duration_fmt}${C_RESET}"
+    status_line="${status_line}${SEP}${C_DIM}⏱️ ${duration_fmt}${C_RESET}"
   fi
 
   # Lines changed (+/-)
@@ -331,12 +331,12 @@ build_statusline() {
     fi
   fi
 
-  # Context usage with progress bar (◔ icon)
+  # Context usage with progress bar (🧠 icon)
   if [ -n "$context_usage" ]; then
     local progress_bar
     progress_bar=$(build_progress_bar "$context_usage")
     if [ -n "$progress_bar" ]; then
-      status_line="${status_line}${SEP}◔ ${progress_bar}"
+      status_line="${status_line}${SEP}🧠 ${progress_bar}"
     fi
   fi
 
