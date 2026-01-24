@@ -278,23 +278,23 @@ build_statusline() {
   local SEP=" │ "
   local status_line=""
 
-  # Kubernetes context (☸ icon)
-  if [ -n "$kube_info" ]; then
-    # Remove surrounding parentheses and space
-    kube_info="${kube_info#(}"
-    kube_info="${kube_info%) }"
-    status_line="${C_CYAN}☸ ${kube_info}${C_RESET}${SEP}"
-  fi
+  # # Kubernetes context (☸ icon)
+  # if [ -n "$kube_info" ]; then
+  #   # Remove surrounding parentheses and space
+  #   kube_info="${kube_info#(}"
+  #   kube_info="${kube_info%) }"
+  #   status_line="${C_CYAN}☸${kube_info}${C_RESET}${SEP}"
+  # fi
 
   # Directory (📂 icon)
-  status_line="${status_line}${C_BLUE}📂 ${dir_name}${C_RESET}"
+  status_line="${status_line}${C_BLUE}📂${dir_name}${C_RESET}"
 
   # Git info (🌿 icon)
   if [ -n "$git_info" ]; then
     # Extract branch and status from " git:(branch *)" format
     local branch_info="${git_info#* git:(}"
     branch_info="${branch_info%)}"
-    status_line="${status_line}${SEP}${C_GREEN}🌿 ${branch_info}${C_RESET}"
+    status_line="${status_line}${SEP}${C_GREEN}🌿${branch_info}${C_RESET}"
   fi
 
   # Model (⚡ icon) - remove "Claude " prefix, keep version
@@ -320,7 +320,7 @@ build_statusline() {
   if [ -n "$duration" ] && [ "$duration" != "0" ] && [ "$duration" != "null" ]; then
     local duration_fmt
     duration_fmt=$(format_duration "$duration")
-    status_line="${status_line}${SEP}${C_DIM}⏱ ${duration_fmt}${C_RESET}"
+    status_line="${status_line}${SEP}${C_DIM}⏱${duration_fmt}${C_RESET}"
   fi
 
   # Lines changed (+/-)
