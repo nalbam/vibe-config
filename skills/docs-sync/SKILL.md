@@ -18,6 +18,21 @@ Analyze entire codebase and documentation, find gaps, update docs.
 - Single source of truth - no duplicate content
 - Update existing docs, don't add new ones
 
+## Exclude Patterns
+
+Skip these directories/files when scanning:
+- `node_modules/` - npm dependencies
+- `.git/` - git internals
+- `dist/`, `build/`, `out/`, `target/` - build outputs
+- `coverage/` - test coverage
+- `.next/`, `.nuxt/`, `.svelte-kit/` - framework cache
+- `vendor/` - Go/PHP dependencies
+- `__pycache__/`, `.pytest_cache/` - Python cache
+- `.venv/`, `venv/`, `.env/` - Python virtual environments
+- `*.min.js`, `*.bundle.js` - minified/bundled files
+- Lock files: `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`
+- IDE: `.idea/`, `.vscode/`, `.settings/`
+
 ## Process
 
 ### 1. Analyze Code
