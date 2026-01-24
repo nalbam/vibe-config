@@ -128,7 +128,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/claude-monitor.sh"
+            "command": "~/.claude/hooks/vibe-monitor.sh"
           }
         ]
       }
@@ -139,7 +139,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/claude-monitor.sh"
+            "command": "~/.claude/hooks/vibe-monitor.sh"
           }
         ]
       }
@@ -150,7 +150,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/claude-monitor.sh"
+            "command": "~/.claude/hooks/vibe-monitor.sh"
           }
         ]
       }
@@ -164,7 +164,7 @@
           },
           {
             "type": "command",
-            "command": "~/.claude/hooks/claude-monitor.sh"
+            "command": "~/.claude/hooks/vibe-monitor.sh"
           }
         ]
       }
@@ -178,7 +178,7 @@
           },
           {
             "type": "command",
-            "command": "~/.claude/hooks/claude-monitor.sh"
+            "command": "~/.claude/hooks/vibe-monitor.sh"
           }
         ]
       }

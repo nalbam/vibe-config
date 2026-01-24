@@ -40,7 +40,7 @@ claude-config/
 │   └── test-writer.md        # Test generation
 │
 ├── hooks/                    # Automated workflow hooks
-│   ├── claude-monitor.sh     # Send status to Desktop app / ESP32
+│   ├── vibe-monitor.sh     # Send status to Desktop app / ESP32
 │   └── notify.sh             # Multi-platform notifications
 │
 ├── rules/                    # Always-follow guidelines
@@ -85,21 +85,21 @@ Specialized agents for delegated tasks:
 Automated quality checks and workflow enforcement:
 
 **SessionStart:**
-- `claude-monitor.sh` - Initialize monitor status
+- `vibe-monitor.sh` - Initialize monitor status
 
 **PreToolUse:**
-- `claude-monitor.sh` - Update monitor (working state)
+- `vibe-monitor.sh` - Update monitor (working state)
 
 **PostToolUse:**
-- `claude-monitor.sh` - Update monitor (done state)
+- `vibe-monitor.sh` - Update monitor (done state)
 
 **Stop:**
 - `notify.sh` - Send completion notifications
-- `claude-monitor.sh` - Update monitor (idle state)
+- `vibe-monitor.sh` - Update monitor (idle state)
 
 **Notification:**
 - `notify.sh` - Send completion notifications
-- `claude-monitor.sh` - Update monitor (notification state)
+- `vibe-monitor.sh` - Update monitor (notification state)
 
 ### Skills
 
@@ -128,7 +128,7 @@ Display Claude Code status in real-time:
 | **Desktop App** | Frameless Electron app (macOS) on `localhost:19280` |
 | **ESP32 Device** | ESP32-C6-LCD-1.47 via USB Serial or HTTP |
 
-See [claude-monitor](https://github.com/nalbam/claude-monitor) for Desktop app and ESP32 firmware.
+See [vibe-monitor](https://github.com/nalbam/vibe-monitor) for Desktop app and ESP32 firmware.
 
 ## Configuration
 
@@ -166,14 +166,14 @@ NTFY_TOPIC=your-topic                    # ntfy.sh push notification
 SLACK_WEBHOOK_URL=https://hooks.slack.com/...  # Slack webhook
 
 # Claude Monitor
-# CLAUDE_MONITOR_DESKTOP=$HOME/path/to/claude-monitor/desktop
+# CLAUDE_MONITOR_DESKTOP=$HOME/path/to/vibe-monitor/desktop
 ESP32_SERIAL_PORT=/dev/cu.usbmodem1101   # USB Serial port
 ESP32_HTTP_URL=http://192.168.1.100      # HTTP fallback (WiFi mode)
 ```
 
 ## Related Projects
 
-- [claude-monitor](https://github.com/nalbam/claude-monitor) - ESP32 status display for Claude Code
+- [vibe-monitor](https://github.com/nalbam/vibe-monitor) - ESP32 status display for Claude Code
 - [dotfiles](https://github.com/nalbam/dotfiles) - Development environment setup
 
 ## License
