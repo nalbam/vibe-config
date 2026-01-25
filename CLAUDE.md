@@ -1,0 +1,72 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+AI-assisted development environment settings for Claude Code and Kiro. This repository manages configuration files that are synced to `~/.claude/` and `~/.kiro/`.
+
+## Commands
+
+```bash
+# Sync settings to user directories
+./sync.sh          # Interactive mode (prompts for each change)
+./sync.sh -y       # Auto-yes mode (sync all without prompts)
+./sync.sh -n       # Dry-run mode (show changes only)
+```
+
+## Architecture
+
+### Sync Flow
+
+```
+vibe-config/
+├── claude/  ──sync──>  ~/.claude/
+└── kiro/    ──sync──>  ~/.kiro/
+```
+
+The `sync.sh` script:
+1. Clones/pulls from `https://github.com/nalbam/vibe-config.git` to `~/.vibe-config`
+2. Compares files using MD5 hashes
+3. Shows diffs for changed files
+4. Prompts user for each change (unless `-y` flag)
+
+### Claude Code Settings (`claude/`)
+
+| Component | Purpose |
+|-----------|---------|
+| `CLAUDE.md` | Global instructions loaded for all projects |
+| `settings.json` | Permissions, hooks, model (opus), plugins |
+| `agents/*.md` | Specialized sub-agents (planner, builder, debugger, etc.) |
+| `hooks/*.sh` | Event-driven scripts (notify, vibe-monitor) |
+| `rules/*.md` | Always-loaded guidelines (language, security, testing) |
+| `skills/*/SKILL.md` | User-invokable skills via `/skill-name` |
+| `sounds/*.mp3` | Audio notifications |
+
+### Hook Events
+
+| Event | Script | Purpose |
+|-------|--------|---------|
+| SessionStart | vibe-monitor.sh | Initialize status |
+| UserPromptSubmit | vibe-monitor.sh | Update to thinking state |
+| PreToolUse | vibe-monitor.sh | Update to working state |
+| PostToolUse | vibe-monitor.sh | Update to done state |
+| Stop | notify.sh, vibe-monitor.sh | Send notifications, idle state |
+| Notification | notify.sh, vibe-monitor.sh | Alert user for input |
+
+### Kiro Settings (`kiro/`)
+
+Contains hook files for Kiro IDE/CLI vibe-monitor integration.
+
+## Key Files
+
+- `claude/.env.sample` - Template for environment variables (`~/.claude/.env.local`)
+- `claude/settings.json` - Defines permissions, hooks, enabled plugins
+- `claude/statusline.sh` - Custom status line showing usage, cost, context
+
+## Testing Changes
+
+1. Make edits in this repository
+2. Run `./sync.sh -n` to preview changes
+3. Run `./sync.sh` to interactively apply changes
+4. Test in a new Claude Code session
