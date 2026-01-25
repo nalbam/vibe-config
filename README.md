@@ -1,11 +1,13 @@
 # vibe-config
 
-Claude Code settings, agents, hooks, rules, and skills for consistent AI-assisted development environments.
+AI-assisted development environment settings for Claude Code and Kiro.
 
 ## Quick Start
 
 ```bash
-# Run sync script (clones repo if needed, then syncs to ~/.claude/)
+# Run sync script (clones repo if needed, then syncs)
+#   - claude/ -> ~/.claude/
+#   - kiro/   -> ~/.kiro/
 bash -c "$(curl -fsSL nalbam.github.io/vibe-config/sync.sh)"
 
 # Or if already cloned
@@ -25,42 +27,42 @@ bash -c "$(curl -fsSL nalbam.github.io/vibe-config/sync.sh)"
 
 ```
 vibe-config/
-├── sync.sh                   # Sync script (clone/pull + sync to ~/.claude/)
-├── CLAUDE.md                 # Global Claude Code instructions
-├── settings.json             # Permissions, hooks, status line config
+├── sync.sh                   # Sync script (clone/pull + sync)
 │
-├── agents/                   # Custom agent definitions
-│   ├── architect.md          # System design and architecture
-│   ├── builder.md            # Build error resolution
-│   ├── code-reviewer.md      # Code review specialist
-│   ├── debugger.md           # Debugging and error resolution
-│   ├── doc-writer.md         # Documentation specialist
-│   ├── planner.md            # Implementation planning (Opus)
-│   ├── refactorer.md         # Code refactoring
-│   └── test-writer.md        # Test generation
+├── claude/                   # Claude Code settings -> ~/.claude/
+│   ├── CLAUDE.md             # Global Claude Code instructions
+│   ├── settings.json         # Permissions, hooks, status line config
+│   ├── agents/               # Custom agent definitions
+│   │   ├── architect.md      # System design and architecture
+│   │   ├── builder.md        # Build error resolution
+│   │   ├── code-reviewer.md  # Code review specialist
+│   │   ├── debugger.md       # Debugging and error resolution
+│   │   ├── doc-writer.md     # Documentation specialist
+│   │   ├── planner.md        # Implementation planning (Opus)
+│   │   ├── refactorer.md     # Code refactoring
+│   │   └── test-writer.md    # Test generation
+│   ├── hooks/                # Automated workflow hooks
+│   │   ├── vibe-monitor.sh   # Send status to Desktop app / ESP32
+│   │   └── notify.sh         # Multi-platform notifications
+│   ├── rules/                # Always-follow guidelines
+│   │   ├── coding-style.md   # Immutability, file organization
+│   │   ├── git-workflow.md   # Commit format, PR process
+│   │   ├── language.md       # Response language (Korean)
+│   │   ├── patterns.md       # API formats, common patterns
+│   │   ├── performance.md    # Model selection strategy
+│   │   ├── security.md       # Security best practices
+│   │   └── testing.md        # TDD workflow, 80% coverage
+│   ├── skills/               # User-invokable skills (/skill-name)
+│   │   ├── docs-sync/        # Documentation sync and gap analysis
+│   │   ├── pr-create/        # Create PR with proper format
+│   │   └── validate/         # Run lint, typecheck, tests
+│   └── sounds/               # Audio notifications
+│       ├── ding1.mp3
+│       ├── ding2.mp3
+│       └── ding3.mp3
 │
-├── hooks/                    # Automated workflow hooks
-│   ├── vibe-monitor.sh     # Send status to Desktop app / ESP32
-│   └── notify.sh             # Multi-platform notifications
-│
-├── rules/                    # Always-follow guidelines
-│   ├── coding-style.md       # Immutability, file organization
-│   ├── git-workflow.md       # Commit format, PR process
-│   ├── language.md           # Response language (Korean)
-│   ├── patterns.md           # API formats, common patterns
-│   ├── performance.md        # Model selection strategy
-│   ├── security.md           # Security best practices
-│   └── testing.md            # TDD workflow, 80% coverage
-│
-├── skills/                   # User-invokable skills (/skill-name)
-│   ├── docs-sync/            # Documentation sync and gap analysis
-│   ├── pr-create/            # Create PR with proper format
-│   └── validate/             # Run lint, typecheck, tests
-│
-└── sounds/                   # Audio notifications
-    ├── ding1.mp3
-    ├── ding2.mp3
-    └── ding3.mp3
+└── kiro/                     # Kiro settings -> ~/.kiro/
+    └── (coming soon)
 ```
 
 ## Features

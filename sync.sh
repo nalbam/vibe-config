@@ -1,9 +1,11 @@
 #!/bin/bash
 
 ################################################################################
-# sync.sh - Interactive Claude Code settings sync
+# sync.sh - Interactive vibe-config settings sync
 #
-# Clones or pulls vibe-config repo, then syncs to ~/.claude/
+# Clones or pulls vibe-config repo, then syncs:
+#   - claude/ -> ~/.claude/
+#   - kiro/   -> ~/.kiro/
 #
 # Usage:
 #   ./sync.sh          # Interactive mode (default)
@@ -16,7 +18,12 @@ REPO_URL="https://github.com/nalbam/vibe-config.git"
 
 # Directories
 SOURCE_DIR="${HOME}/.vibe-config"
-TARGET_DIR="${HOME}/.claude"
+
+# Sync targets: source_subdir:target_dir
+SYNC_TARGETS=(
+  "claude:${HOME}/.claude"
+  "kiro:${HOME}/.kiro"
+)
 
 # Options
 AUTO_YES=true
@@ -171,7 +178,7 @@ done
 
 # Banner
 _echo "\n╔════════════════════════════════════════════════════════════════╗" 6
-_echo "║                   CLAUDE CODE SETTINGS SYNC                    ║" 6
+_echo "║                     VIBE-CONFIG SETTINGS SYNC                  ║" 6
 _echo "╚════════════════════════════════════════════════════════════════╝" 6
 
 if [ "$DRY_RUN" = true ]; then
@@ -203,88 +210,59 @@ else
   fi
 fi
 
-# Create target directory if needed
-if [ ! -d "$TARGET_DIR" ]; then
-  _info "Creating target directory: $TARGET_DIR"
-  if [ "$DRY_RUN" = false ]; then
-    mkdir -p "$TARGET_DIR"
+# Sync each target
+for target_config in "${SYNC_TARGETS[@]}"; do
+  source_subdir="${target_config%%:*}"
+  target_dir="${target_config#*:}"
+  source_path="$SOURCE_DIR/$source_subdir"
+
+  # Skip if source directory doesn't exist or is empty
+  if [ ! -d "$source_path" ] || [ -z "$(ls -A "$source_path" 2>/dev/null)" ]; then
+    _info "Skipping $source_subdir/ (empty or not found)"
+    continue
   fi
-fi
 
-_echo "\n▶ Comparing files..." 6
-_info "Source: $SOURCE_DIR"
-_info "Target: $TARGET_DIR"
+  _echo "\n▶ Syncing $source_subdir/ -> $target_dir/" 6
 
-# Find all files in source directory
-while IFS= read -r -d '' source_file; do
-  # Get relative path
-  rel_path="${source_file#$SOURCE_DIR/}"
-  target_file="$TARGET_DIR/$rel_path"
-
-  # Check if target exists
-  if [ ! -f "$target_file" ]; then
-    # New file
-    _diff_header "$rel_path"
-    _new "NEW FILE"
-
-    if ! _is_binary "$source_file"; then
-      _echo "  Content preview:" 4
-      head -20 "$source_file" | sed 's/^/    /'
-      total_lines=$(wc -l < "$source_file")
-      if [ "$total_lines" -gt 20 ]; then
-        _warn "    ... (${total_lines} lines total)"
-      fi
-    else
-      _info "Binary file ($(du -h "$source_file" | cut -f1))"
+  # Create target directory if needed
+  if [ ! -d "$target_dir" ]; then
+    _info "Creating target directory: $target_dir"
+    if [ "$DRY_RUN" = false ]; then
+      mkdir -p "$target_dir"
     fi
+  fi
 
-    _prompt_sync "Add this new file?"
-    case $? in
-      0)
-        if [ "$DRY_RUN" = false ]; then
-          _copy_file "$source_file" "$target_file"
-        fi
-        _ok "Added: $rel_path"
-        COUNT_NEW=$((COUNT_NEW + 1))
-        ;;
-      1)
-        _skip "Skipped: $rel_path"
-        COUNT_SKIPPED=$((COUNT_SKIPPED + 1))
-        ;;
-      3)
-        _warn "Sync cancelled by user"
-        break
-        ;;
-    esac
+  # Find all files in source subdirectory
+  while IFS= read -r -d '' source_file; do
+    # Get relative path (relative to source_path)
+    rel_path="${source_file#$source_path/}"
+    target_file="$target_dir/$rel_path"
 
-  else
-    # File exists - compare
-    source_md5=$(_md5 "$source_file")
-    target_md5=$(_md5 "$target_file")
-
-    if [ "$source_md5" = "$target_md5" ]; then
-      # Identical
-      COUNT_IDENTICAL=$((COUNT_IDENTICAL + 1))
-    else
-      # Different
-      _diff_header "$rel_path"
+    # Check if target exists
+    if [ ! -f "$target_file" ]; then
+      # New file
+      _diff_header "$source_subdir/$rel_path"
+      _new "NEW FILE"
 
       if ! _is_binary "$source_file"; then
-        _show_diff "$source_file" "$target_file"
+        _echo "  Content preview:" 4
+        head -20 "$source_file" | sed 's/^/    /'
+        total_lines=$(wc -l < "$source_file")
+        if [ "$total_lines" -gt 20 ]; then
+          _warn "    ... (${total_lines} lines total)"
+        fi
       else
-        _info "Binary file changed"
-        _info "  Source: $(du -h "$source_file" | cut -f1)"
-        _info "  Target: $(du -h "$target_file" | cut -f1)"
+        _info "Binary file ($(du -h "$source_file" | cut -f1))"
       fi
 
-      _prompt_sync "Apply this change?"
+      _prompt_sync "Add this new file?"
       case $? in
         0)
           if [ "$DRY_RUN" = false ]; then
             _copy_file "$source_file" "$target_file"
           fi
-          _ok "Updated: $rel_path"
-          COUNT_UPDATED=$((COUNT_UPDATED + 1))
+          _ok "Added: $rel_path"
+          COUNT_NEW=$((COUNT_NEW + 1))
           ;;
         1)
           _skip "Skipped: $rel_path"
@@ -292,13 +270,53 @@ while IFS= read -r -d '' source_file; do
           ;;
         3)
           _warn "Sync cancelled by user"
-          break
+          break 2
           ;;
       esac
-    fi
-  fi
 
-done < <(find "$SOURCE_DIR" -type f -not -path '*/.git/*' -print0 | sort -z)
+    else
+      # File exists - compare
+      source_md5=$(_md5 "$source_file")
+      target_md5=$(_md5 "$target_file")
+
+      if [ "$source_md5" = "$target_md5" ]; then
+        # Identical
+        COUNT_IDENTICAL=$((COUNT_IDENTICAL + 1))
+      else
+        # Different
+        _diff_header "$source_subdir/$rel_path"
+
+        if ! _is_binary "$source_file"; then
+          _show_diff "$source_file" "$target_file"
+        else
+          _info "Binary file changed"
+          _info "  Source: $(du -h "$source_file" | cut -f1)"
+          _info "  Target: $(du -h "$target_file" | cut -f1)"
+        fi
+
+        _prompt_sync "Apply this change?"
+        case $? in
+          0)
+            if [ "$DRY_RUN" = false ]; then
+              _copy_file "$source_file" "$target_file"
+            fi
+            _ok "Updated: $rel_path"
+            COUNT_UPDATED=$((COUNT_UPDATED + 1))
+            ;;
+          1)
+            _skip "Skipped: $rel_path"
+            COUNT_SKIPPED=$((COUNT_SKIPPED + 1))
+            ;;
+          3)
+            _warn "Sync cancelled by user"
+            break 2
+            ;;
+        esac
+      fi
+    fi
+
+  done < <(find "$source_path" -type f -not -path '*/.git/*' -print0 | sort -z)
+done
 
 # Summary
 _echo "\n╔════════════════════════════════════════════════════════════════╗" 2
