@@ -50,8 +50,7 @@ The `sync.sh` script:
 | SessionStart | vibe-monitor.sh | Initialize status |
 | UserPromptSubmit | vibe-monitor.sh | Update to thinking state |
 | PreToolUse | vibe-monitor.sh | Update to working state |
-| PostToolUse | vibe-monitor.sh | Update to done state |
-| Stop | notify.sh, vibe-monitor.sh | Send notifications, idle state |
+| Stop | notify.sh, vibe-monitor.sh | Send notifications, done state |
 | Notification | notify.sh, vibe-monitor.sh | Alert user for input |
 
 ### Kiro Settings (`kiro/`)

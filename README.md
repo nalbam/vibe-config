@@ -100,12 +100,9 @@ Automated quality checks and workflow enforcement:
 **PreToolUse:**
 - `vibe-monitor.sh` - Update monitor (working state)
 
-**PostToolUse:**
-- `vibe-monitor.sh` - Update monitor (done state)
-
 **Stop:**
 - `notify.sh` - Send completion notifications
-- `vibe-monitor.sh` - Update monitor (idle state)
+- `vibe-monitor.sh` - Update monitor (done state)
 
 **Notification:**
 - `notify.sh` - Send completion notifications
