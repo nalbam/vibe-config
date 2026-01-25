@@ -122,7 +122,7 @@ get_context_usage() {
 # ============================================================================
 
 is_desktop_running() {
-  curl -s "http://127.0.0.1:19280/health" \
+  curl -s "${VIBE_MONITOR_URL}/health" \
     --connect-timeout 1 \
     --max-time 1 \
     > /dev/null 2>&1
@@ -135,6 +135,7 @@ send_to_desktop() {
 
   # Only send if VIBE_MONITOR_DESKTOP is set and app is running
   [ -z "${VIBE_MONITOR_DESKTOP}" ] && return
+  [ -z "${VIBE_MONITOR_URL}" ] && return
   [ -z "$project" ] && return
   is_desktop_running || return
 
@@ -151,7 +152,7 @@ send_to_desktop() {
 
   payload="${payload}}"
 
-  curl -s -X POST "http://127.0.0.1:19280/status" \
+  curl -s -X POST "${VIBE_MONITOR_URL}/status" \
     -H "Content-Type: application/json" \
     -d "$payload" \
     --connect-timeout 1 \
