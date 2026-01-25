@@ -32,6 +32,7 @@ vibe-config/
 ├── claude/                   # Claude Code settings -> ~/.claude/
 │   ├── CLAUDE.md             # Global Claude Code instructions
 │   ├── settings.json         # Permissions, hooks, status line config
+│   ├── .env.sample           # Environment variables template
 │   ├── agents/               # Custom agent definitions
 │   │   ├── architect.md      # System design and architecture
 │   │   ├── builder.md        # Build error resolution
@@ -62,7 +63,11 @@ vibe-config/
 │       └── ding3.mp3
 │
 └── kiro/                     # Kiro settings -> ~/.kiro/
-    └── (coming soon)
+    └── hooks/                # Kiro-specific hooks
+        ├── vibe-monitor-idle.kiro.hook
+        ├── vibe-monitor-session-start.kiro.hook
+        ├── vibe-monitor-tool-use.kiro.hook
+        └── vibe-monitor-working.kiro.hook
 ```
 
 ## Features
@@ -88,6 +93,9 @@ Automated quality checks and workflow enforcement:
 
 **SessionStart:**
 - `vibe-monitor.sh` - Initialize monitor status
+
+**UserPromptSubmit:**
+- `vibe-monitor.sh` - Update monitor (thinking state)
 
 **PreToolUse:**
 - `vibe-monitor.sh` - Update monitor (working state)
@@ -123,7 +131,7 @@ The `notify.sh` hook supports multiple platforms:
 
 ### Vibe Monitor
 
-Display Claude Code status in real-time:
+Display Claude Code and Kiro status in real-time. Supports Claude Code, Kiro IDE, and Kiro CLI.
 
 | Target | Description |
 |--------|-------------|
