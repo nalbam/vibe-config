@@ -4,6 +4,23 @@
 # Displays status line and sends context usage to Desktop App
 
 # ============================================================================
+# Environment Loading
+# ============================================================================
+
+load_env() {
+  local env_file="$HOME/.claude/.env.local"
+
+  if [ -f "$env_file" ]; then
+    # shellcheck source=/dev/null
+    source "$env_file"
+  fi
+}
+
+load_env
+
+DEBUG="${DEBUG:-0}"
+
+# ============================================================================
 # Utility Functions
 # ============================================================================
 
