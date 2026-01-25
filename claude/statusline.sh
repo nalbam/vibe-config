@@ -264,16 +264,18 @@ build_progress_bar() {
     color="$C_YELLOW"
   fi
 
-  # Build the bar
+  # Build the bar - filled in color, empty in gray
   local bar=""
   for ((i=0; i<filled; i++)); do
     bar="${bar}━"
   done
+
+  local empty_bar=""
   for ((i=0; i<empty; i++)); do
-    bar="${bar}╌"
+    empty_bar="${empty_bar}╌"
   done
 
-  printf "%b%s%b %s%%" "$color" "$bar" "$C_RESET" "$percent"
+  printf "%b%s%b%b%s%b %s%%" "$color" "$bar" "$C_RESET" "$C_DIM" "$empty_bar" "$C_RESET" "$percent"
 }
 
 # ============================================================================
