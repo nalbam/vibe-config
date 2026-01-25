@@ -156,17 +156,6 @@
         ]
       }
     ],
-    "PostToolUse": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/vibe-monitor.sh"
-          }
-        ]
-      }
-    ],
     "Stop": [
       {
         "hooks": [
