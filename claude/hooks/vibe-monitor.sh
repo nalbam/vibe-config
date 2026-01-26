@@ -32,7 +32,17 @@ debug_log() {
 }
 
 read_input() {
-  timeout 5 cat 2>/dev/null || cat
+  # timeout may not be available on macOS, use read with timeout as fallback
+  if command -v timeout > /dev/null 2>&1; then
+    timeout 5 cat 2>/dev/null || cat
+  else
+    # macOS fallback: read with timeout
+    local input=""
+    while IFS= read -r -t 5 line; do
+      input="${input}${line}"$'\n'
+    done
+    echo -n "$input"
+  fi
 }
 
 parse_json_field() {
@@ -179,7 +189,8 @@ send_lock() {
     -H "Content-Type: application/json" \
     -d "$payload" \
     --connect-timeout 2 \
-    --max-time 5
+    --max-time 5 \
+    > /dev/null 2>&1
 }
 
 send_unlock() {
@@ -191,7 +202,8 @@ send_unlock() {
   debug_log "Unlocking"
   curl -s -X POST "${VIBE_MONITOR_URL}/unlock" \
     --connect-timeout 2 \
-    --max-time 5
+    --max-time 5 \
+    > /dev/null 2>&1
 }
 
 get_status() {
@@ -200,9 +212,10 @@ get_status() {
     return 1
   fi
 
+  # Output status to stdout for user visibility
   curl -s "${VIBE_MONITOR_URL}/status" \
     --connect-timeout 2 \
-    --max-time 5
+    --max-time 5 2>/dev/null
 }
 
 # ============================================================================

@@ -188,9 +188,10 @@ format_number() {
   local int_num="${num%.*}"
 
   if [ "$int_num" -ge 1000000 ]; then
-    printf "%.1fM" "$(echo "scale=1; $num / 1000000" | bc)"
+    # Use awk instead of bc for better portability
+    awk "BEGIN {printf \"%.1fM\", $num / 1000000}"
   elif [ "$int_num" -ge 1000 ]; then
-    printf "%.1fK" "$(echo "scale=1; $num / 1000" | bc)"
+    awk "BEGIN {printf \"%.1fK\", $num / 1000}"
   else
     echo "$int_num"
   fi
