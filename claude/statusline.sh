@@ -4,6 +4,23 @@
 # Displays status line and sends context usage to VibeMon
 
 # ============================================================================
+# Environment Loading
+# ============================================================================
+
+load_env() {
+  local env_file="$HOME/.claude/.env.local"
+
+  if [ -f "$env_file" ]; then
+    # shellcheck source=/dev/null
+    source "$env_file"
+  fi
+}
+
+load_env
+
+DEBUG="${DEBUG:-0}"
+
+# ============================================================================
 # Utility Functions
 # ============================================================================
 
@@ -101,40 +118,41 @@ get_context_usage() {
 }
 
 # ============================================================================
-# VibeMon Functions
+# VibeMon Cache Functions
 # ============================================================================
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VIBE_MONITOR_SCRIPT="${SCRIPT_DIR}/hooks/vibe-monitor.sh"
+VIBE_MONITOR_CACHE="${VIBE_MONITOR_CACHE:-$HOME/.claude/.vibe-monitor.json}"
+VIBE_MONITOR_MAX_PROJECTS=10
 
-send_to_vibemon() {
+save_to_cache() {
   local project="$1"
   local model="$2"
   local memory="$3"
+  local timestamp
+  timestamp=$(date +%s)
 
-  # Only send if project is set
+  # Only save if project is set
   [ -z "$project" ] && return
 
-  # Check if vibe-monitor.sh exists
-  if [ ! -x "$VIBE_MONITOR_SCRIPT" ]; then
-    return
+  # Read existing cache or create empty object
+  local cache="{}"
+  if [ -f "$VIBE_MONITOR_CACHE" ]; then
+    cache=$(cat "$VIBE_MONITOR_CACHE" 2>/dev/null || echo "{}")
   fi
 
-  # Build JSON payload with project for session matching
-  local payload="{\"project\":\"$project\""
+  # Update cache with new project data (with timestamp)
+  # Then keep only the most recent N projects
+  cache=$(echo "$cache" | jq \
+    --arg project "$project" \
+    --arg model "$model" \
+    --arg memory "$memory" \
+    --argjson ts "$timestamp" \
+    --argjson max "$VIBE_MONITOR_MAX_PROJECTS" \
+    '.[$project] = {model: $model, memory: $memory, ts: $ts} |
+     to_entries | sort_by(.value.ts) | reverse | .[:$max] | from_entries' 2>/dev/null)
 
-  if [ -n "$model" ]; then
-    payload="${payload},\"model\":\"$model\""
-  fi
-
-  if [ -n "$memory" ]; then
-    payload="${payload},\"memory\":\"$memory\""
-  fi
-
-  payload="${payload}}"
-
-  # Route through vibe-monitor.sh for proper desktop/usb/http routing
-  "$VIBE_MONITOR_SCRIPT" --json "$payload"
+  # Write back to cache file
+  echo "$cache" > "$VIBE_MONITOR_CACHE" 2>/dev/null
 }
 
 # ============================================================================
@@ -374,8 +392,8 @@ main() {
   lines_added=$(parse_json_field "$input" '.cost.total_lines_added' '0')
   lines_removed=$(parse_json_field "$input" '.cost.total_lines_removed' '0')
 
-  # Send project, model and context usage to VibeMon (if running)
-  send_to_vibemon "$dir_name" "$model_display" "$context_usage" &
+  # Save project metadata to cache (vibe-monitor.sh will read this)
+  save_to_cache "$dir_name" "$model_display" "$context_usage" &
 
   # Output statusline
   build_statusline "$model_display" "$dir_name" "$git_info" "$kube_info" "$context_usage" \

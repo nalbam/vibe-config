@@ -46,6 +46,8 @@ parse_json_field() {
 # State Functions
 # ============================================================================
 
+VIBE_MONITOR_CACHE="${VIBE_MONITOR_CACHE:-$HOME/.claude/.vibe-monitor.json}"
+
 get_project_name() {
   local cwd="$1"
   local transcript_path="$2"
@@ -70,19 +72,41 @@ get_state() {
   esac
 }
 
+get_project_metadata() {
+  local project="$1"
+
+  if [ -z "$project" ] || [ ! -f "$VIBE_MONITOR_CACHE" ]; then
+    echo ""
+    return
+  fi
+
+  jq -r --arg project "$project" '.[$project] // empty' "$VIBE_MONITOR_CACHE" 2>/dev/null
+}
+
 build_payload() {
   local state="$1"
   local event="$2"
   local tool="$3"
   local project="$4"
 
+  # Get model/memory from cache
+  local metadata model memory
+  metadata=$(get_project_metadata "$project")
+
+  if [ -n "$metadata" ]; then
+    model=$(echo "$metadata" | jq -r '.model // empty' 2>/dev/null)
+    memory=$(echo "$metadata" | jq -r '.memory // empty' 2>/dev/null)
+  fi
+
   jq -n \
     --arg state "$state" \
     --arg event "$event" \
     --arg tool "$tool" \
     --arg project "$project" \
+    --arg model "${model:-}" \
+    --arg memory "${memory:-}" \
     --arg character "clawd" \
-    '{state: $state, event: $event, tool: $tool, project: $project, character: $character}'
+    '{state: $state, event: $event, tool: $tool, project: $project, model: $model, memory: $memory, character: $character}'
 }
 
 # ============================================================================
@@ -242,16 +266,6 @@ send_to_all() {
 main() {
   # Check for command modes
   case "$1" in
-    --json)
-      local payload="$2"
-      if [ -z "$payload" ]; then
-        debug_log "No payload provided with --json"
-        exit 1
-      fi
-      debug_log "Direct JSON mode: $payload"
-      send_to_all "$payload" "false"
-      exit 0
-      ;;
     --lock)
       local project="${2:-$(basename "$(pwd)")}"
       send_lock "$project"
