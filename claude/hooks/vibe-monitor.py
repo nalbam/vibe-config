@@ -183,13 +183,30 @@ def show_monitor_window(url):
     except (URLError, TimeoutError, OSError):
         pass
 
+def get_user_shell():
+    """Get user's login shell from /etc/passwd or SHELL env."""
+    # Try SHELL environment variable first
+    shell = os.environ.get("SHELL")
+    if shell:
+        return shell
+
+    # Fallback: read from /etc/passwd
+    try:
+        import pwd
+        return pwd.getpwuid(os.getuid()).pw_shell
+    except Exception:
+        pass
+
+    return "/bin/sh"
+
 def launch_desktop():
     """Launch Desktop App via npx."""
     debug_log("Launching Desktop App via npx")
     try:
-        # Use login shell to load nvm PATH
+        shell = get_user_shell()
+        debug_log(f"Using shell: {shell}")
         subprocess.Popen(
-            ["bash", "-l", "-c", "npx vibe-monitor@latest"],
+            [shell, "-l", "-c", "npx vibe-monitor@latest"],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             start_new_session=True
