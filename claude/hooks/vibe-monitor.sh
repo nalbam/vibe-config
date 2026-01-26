@@ -57,6 +57,8 @@ parse_json_field() {
 # ============================================================================
 
 VIBE_MONITOR_CACHE="${VIBE_MONITOR_CACHE:-$HOME/.claude/.vibe-monitor.json}"
+# Expand ~ to $HOME (tilde is not expanded when sourced from .env files)
+VIBE_MONITOR_CACHE="${VIBE_MONITOR_CACHE/#\~/$HOME}"
 
 get_project_name() {
   local cwd="$1"

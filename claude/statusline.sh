@@ -122,6 +122,8 @@ get_context_usage() {
 # ============================================================================
 
 VIBE_MONITOR_CACHE="${VIBE_MONITOR_CACHE:-$HOME/.claude/.vibe-monitor.json}"
+# Expand ~ to $HOME (tilde is not expanded when sourced from .env files)
+VIBE_MONITOR_CACHE="${VIBE_MONITOR_CACHE/#\~/$HOME}"
 VIBE_MONITOR_MAX_PROJECTS=10
 
 save_to_cache() {
