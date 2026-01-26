@@ -82,7 +82,6 @@
       "Bash(yarn:*)",
       "Bash(yq:*)",
       "Bash(zip:*)",
-      "Bash(~/.claude/hooks/vibe-monitor.sh --lock)",
       "WebFetch(domain:developer.mozilla.org)",
       "WebFetch(domain:developer.paypal.com)",
       "WebFetch(domain:docs.anthropic.com)",
@@ -131,7 +130,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/vibe-monitor.sh"
+            "command": "python3 ~/.claude/hooks/vibe-monitor.py"
           }
         ]
       }
@@ -142,7 +141,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/vibe-monitor.sh"
+            "command": "python3 ~/.claude/hooks/vibe-monitor.py"
           }
         ]
       }
@@ -153,7 +152,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/vibe-monitor.sh"
+            "command": "python3 ~/.claude/hooks/vibe-monitor.py"
           }
         ]
       }
@@ -167,7 +166,7 @@
           },
           {
             "type": "command",
-            "command": "~/.claude/hooks/vibe-monitor.sh"
+            "command": "python3 ~/.claude/hooks/vibe-monitor.py"
           }
         ]
       }
@@ -181,7 +180,7 @@
           },
           {
             "type": "command",
-            "command": "~/.claude/hooks/vibe-monitor.sh"
+            "command": "python3 ~/.claude/hooks/vibe-monitor.py"
           }
         ]
       }
@@ -189,7 +188,7 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "~/.claude/statusline.sh"
+    "command": "python3 ~/.claude/statusline.py"
   },
   "enabledPlugins": {
     "context7@claude-plugins-official": true,
