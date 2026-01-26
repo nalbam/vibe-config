@@ -56,18 +56,21 @@ vibe-config/
 │   ├── skills/               # User-invokable skills (/skill-name)
 │   │   ├── docs-sync/        # Documentation sync and gap analysis
 │   │   ├── pr-create/        # Create PR with proper format
-│   │   └── validate/         # Run lint, typecheck, tests
+│   │   ├── validate/         # Run lint, typecheck, tests
+│   │   └── vibe-lock/        # Lock vibe-monitor to current project
 │   └── sounds/               # Audio notifications
 │       ├── ding1.mp3
 │       ├── ding2.mp3
 │       └── ding3.mp3
 │
 └── kiro/                     # Kiro settings -> ~/.kiro/
+    ├── .env.sample           # Environment variables template
     └── hooks/                # Kiro-specific hooks
-        ├── vibe-monitor-idle.kiro.hook
-        ├── vibe-monitor-session-start.kiro.hook
-        ├── vibe-monitor-tool-use.kiro.hook
-        └── vibe-monitor-working.kiro.hook
+        ├── vibe-monitor.sh   # Send status to Desktop app / ESP32
+        ├── vibe-monitor-agent-spawn.kiro.hook
+        ├── vibe-monitor-agent-stop.kiro.hook
+        ├── vibe-monitor-pre-tool-use.kiro.hook
+        └── vibe-monitor-prompt-submit.kiro.hook
 ```
 
 ## Features
@@ -116,6 +119,7 @@ User-invokable via `/skill-name`:
 /validate      # Run lint, typecheck, tests with auto-fix
 /docs-sync     # Analyze and update documentation
 /pr-create     # Create pull request with proper format
+/vibe-lock     # Lock vibe-monitor to current project
 ```
 
 ### Notification System
