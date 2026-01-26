@@ -187,14 +187,17 @@ def launch_desktop():
     """Launch Desktop App via npx."""
     debug_log("Launching Desktop App via npx")
     try:
+        # Use shell=True to inherit PATH (needed for nvm-installed npx)
         subprocess.Popen(
-            ["npx", "vibe-monitor@latest"],
+            "npx vibe-monitor@latest",
+            shell=True,
             stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
+            stderr=subprocess.DEVNULL,
+            env=os.environ
         )
         time.sleep(2)
-    except FileNotFoundError:
-        debug_log("npx not found, skipping Desktop App launch")
+    except Exception as e:
+        debug_log(f"Failed to launch Desktop App: {e}")
 
 # ============================================================================
 # Lock/Unlock Functions (Desktop App only)
