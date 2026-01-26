@@ -128,21 +128,48 @@ save_to_cache() {
   local project="$1"
   local model="$2"
   local memory="$3"
-  local timestamp
-  timestamp=$(date +%s)
 
   # Only save if project is set
   [ -z "$project" ] && return
 
+  local cache_dir
+  cache_dir=$(dirname "$VIBE_MONITOR_CACHE")
+
+  # Ensure cache directory exists
+  if [ ! -d "$cache_dir" ]; then
+    mkdir -p "$cache_dir" 2>/dev/null || return
+  fi
+
+  local lockfile="${VIBE_MONITOR_CACHE}.lock"
+  local tmpfile="${VIBE_MONITOR_CACHE}.tmp.$$"
+  local timestamp
+  timestamp=$(date +%s)
+
+  # Simple file-based locking (wait up to 5 seconds)
+  local wait_count=0
+  while [ -f "$lockfile" ] && [ "$wait_count" -lt 50 ]; do
+    sleep 0.1
+    wait_count=$((wait_count + 1))
+  done
+
+  # Create lock file
+  echo $$ > "$lockfile" 2>/dev/null
+
   # Read existing cache or create empty object
   local cache="{}"
   if [ -f "$VIBE_MONITOR_CACHE" ]; then
-    cache=$(cat "$VIBE_MONITOR_CACHE" 2>/dev/null || echo "{}")
+    # Validate existing cache is valid JSON
+    local existing
+    existing=$(cat "$VIBE_MONITOR_CACHE" 2>/dev/null)
+    if echo "$existing" | jq empty 2>/dev/null; then
+      cache="$existing"
+    fi
   fi
 
   # Update cache with new project data (with timestamp)
   # Then keep only the most recent N projects
-  cache=$(echo "$cache" | jq \
+  local new_cache
+  new_cache=$(echo "$cache" | jq \
     --arg project "$project" \
     --arg model "$model" \
     --arg memory "$memory" \
@@ -151,8 +178,17 @@ save_to_cache() {
     '.[$project] = {model: $model, memory: $memory, ts: $ts} |
      to_entries | sort_by(.value.ts) | reverse | .[:$max] | from_entries' 2>/dev/null)
 
-  # Write back to cache file
-  echo "$cache" > "$VIBE_MONITOR_CACHE" 2>/dev/null
+  # Only write if jq succeeded and produced valid JSON
+  if [ -n "$new_cache" ] && echo "$new_cache" | jq empty 2>/dev/null; then
+    # Atomic write: write to temp file, then move
+    echo "$new_cache" > "$tmpfile" 2>/dev/null && mv "$tmpfile" "$VIBE_MONITOR_CACHE" 2>/dev/null
+  fi
+
+  # Clean up temp file if still exists
+  rm -f "$tmpfile" 2>/dev/null
+
+  # Remove lock file
+  rm -f "$lockfile" 2>/dev/null
 }
 
 # ============================================================================
