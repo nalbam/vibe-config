@@ -38,7 +38,7 @@ The `sync.sh` script:
 | `CLAUDE.md` | Global instructions loaded for all projects |
 | `settings.json` | Permissions, hooks, model (opus), plugins |
 | `agents/*.md` | Specialized sub-agents (planner, builder, debugger, etc.) |
-| `hooks/*.sh` | Event-driven scripts (notify, vibe-monitor) |
+| `hooks/` | Event-driven scripts (vibe-monitor.py, notify.sh) |
 | `rules/*.md` | Always-loaded guidelines (language, security, testing) |
 | `skills/*/SKILL.md` | User-invokable skills via `/skill-name` |
 | `sounds/*.mp3` | Audio notifications |
@@ -47,11 +47,11 @@ The `sync.sh` script:
 
 | Event | Script | Purpose |
 |-------|--------|---------|
-| SessionStart | vibe-monitor.sh | Initialize status |
-| UserPromptSubmit | vibe-monitor.sh | Update to thinking state |
-| PreToolUse | vibe-monitor.sh | Update to working state |
-| Stop | notify.sh, vibe-monitor.sh | Send notifications, done state |
-| Notification | notify.sh, vibe-monitor.sh | Alert user for input |
+| SessionStart | vibe-monitor.py | Initialize status |
+| UserPromptSubmit | vibe-monitor.py | Update to thinking state |
+| PreToolUse | vibe-monitor.py | Update to working state |
+| Stop | notify.sh, vibe-monitor.py | Send notifications, done state |
+| Notification | notify.sh, vibe-monitor.py | Alert user for input |
 
 ### Kiro Settings (`kiro/`)
 
@@ -61,7 +61,7 @@ Contains hook files for Kiro IDE/CLI vibe-monitor integration.
 
 - `claude/.env.sample` - Template for environment variables (`~/.claude/.env.local`)
 - `claude/settings.json` - Defines permissions, hooks, enabled plugins
-- `claude/statusline.sh` - Custom status line showing usage, cost, context
+- `claude/statusline.py` - Custom status line showing usage, cost, context
 
 ## Testing Changes
 

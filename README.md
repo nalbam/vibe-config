@@ -43,7 +43,7 @@ vibe-config/
 │   │   ├── refactorer.md     # Code refactoring
 │   │   └── test-writer.md    # Test generation
 │   ├── hooks/                # Automated workflow hooks
-│   │   ├── vibe-monitor.sh   # Send status to Desktop app / ESP32
+│   │   ├── vibe-monitor.py   # Send status to Desktop app / ESP32
 │   │   └── notify.sh         # Multi-platform notifications
 │   ├── rules/                # Always-follow guidelines
 │   │   ├── coding-style.md   # Immutability, file organization
@@ -66,7 +66,7 @@ vibe-config/
 └── kiro/                     # Kiro settings -> ~/.kiro/
     ├── .env.sample           # Environment variables template
     └── hooks/                # Kiro-specific hooks
-        ├── vibe-monitor.sh   # Send status to Desktop app / ESP32
+        ├── vibe-monitor.py   # Send status to Desktop app / ESP32
         ├── vibe-monitor-agent-spawn.kiro.hook
         ├── vibe-monitor-agent-stop.kiro.hook
         ├── vibe-monitor-pre-tool-use.kiro.hook
@@ -95,21 +95,21 @@ Specialized agents for delegated tasks:
 Automated quality checks and workflow enforcement:
 
 **SessionStart:**
-- `vibe-monitor.sh` - Initialize monitor status
+- `vibe-monitor.py` - Initialize monitor status
 
 **UserPromptSubmit:**
-- `vibe-monitor.sh` - Update monitor (thinking state)
+- `vibe-monitor.py` - Update monitor (thinking state)
 
 **PreToolUse:**
-- `vibe-monitor.sh` - Update monitor (working state)
+- `vibe-monitor.py` - Update monitor (working state)
 
 **Stop:**
 - `notify.sh` - Send completion notifications
-- `vibe-monitor.sh` - Update monitor (done state)
+- `vibe-monitor.py` - Update monitor (done state)
 
 **Notification:**
 - `notify.sh` - Send completion notifications
-- `vibe-monitor.sh` - Update monitor (notification state)
+- `vibe-monitor.py` - Update monitor (notification state)
 
 ### Skills
 
@@ -150,7 +150,7 @@ The `settings.json` file includes:
 | `model` | `opus` | Default Claude model |
 | `cleanupPeriodDays` | `30` | Conversation cleanup period |
 | `MAX_THINKING_TOKENS` | `31999` | Extended thinking token limit |
-| `statusLine` | `statusline.sh` | Custom status line with usage, cost, context |
+| `statusLine` | `statusline.py` | Custom status line with usage, cost, context |
 
 ### Enabled Plugins
 
