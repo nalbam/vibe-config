@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Claude Code Statusline Hook
-# Displays status line and sends context usage to Desktop App
+# Displays status line and sends context usage to VibeMon
 
 # ============================================================================
 # Environment Loading
@@ -118,25 +118,25 @@ get_context_usage() {
 }
 
 # ============================================================================
-# Desktop App Functions
+# VibeMon Functions
 # ============================================================================
 
-is_desktop_running() {
+is_vibemon_running() {
   curl -s "${VIBE_MONITOR_URL}/health" \
     --connect-timeout 1 \
     --max-time 1 \
     > /dev/null 2>&1
 }
 
-send_to_desktop() {
+send_to_vibemon() {
   local project="$1"
   local model="$2"
   local memory="$3"
 
-  # Only send if VIBE_MONITOR_URL is set and app is running
+  # Only send if VIBE_MONITOR_URL is set and VibeMon is running
   [ -z "${VIBE_MONITOR_URL}" ] && return
   [ -z "$project" ] && return
-  is_desktop_running || return
+  is_vibemon_running || return
 
   # Build JSON payload with project for session matching
   local payload="{\"project\":\"$project\""
@@ -396,8 +396,8 @@ main() {
   lines_added=$(parse_json_field "$input" '.cost.total_lines_added' '0')
   lines_removed=$(parse_json_field "$input" '.cost.total_lines_removed' '0')
 
-  # Send project, model and context usage to Desktop App (if running)
-  send_to_desktop "$dir_name" "$model_display" "$context_usage" &
+  # Send project, model and context usage to VibeMon (if running)
+  send_to_vibemon "$dir_name" "$model_display" "$context_usage" &
 
   # Output statusline
   build_statusline "$model_display" "$dir_name" "$git_info" "$kube_info" "$context_usage" \
