@@ -57,7 +57,7 @@ vibe-config/
 │   │   ├── docs-sync/        # Documentation sync and gap analysis
 │   │   ├── pr-create/        # Create PR with proper format
 │   │   ├── validate/         # Run lint, typecheck, tests
-│   │   └── vibe-lock/        # Lock vibe-monitor to current project
+│   │   └── vibemon/          # Lock vibe-monitor to current project
 │   └── sounds/               # Audio notifications
 │       ├── ding1.mp3
 │       ├── ding2.mp3
@@ -119,7 +119,7 @@ User-invokable via `/skill-name`:
 /validate      # Run lint, typecheck, tests with auto-fix
 /docs-sync     # Analyze and update documentation
 /pr-create     # Create pull request with proper format
-/vibe-lock     # Lock vibe-monitor to current project
+/vibemon       # Lock vibe-monitor to current project
 ```
 
 ### Notification System

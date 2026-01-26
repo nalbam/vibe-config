@@ -109,7 +109,7 @@
       "Skill(docs-sync)",
       "Skill(pr-create)",
       "Skill(validate)",
-      "Skill(vibemon-lock)"
+      "Skill(vibemon)"
     ],
     "deny": [
       "Bash(rm -rf /)",
