@@ -153,7 +153,7 @@ The `settings.json` file includes:
 | `model` | `opus` | Default Claude model |
 | `cleanupPeriodDays` | `30` | Conversation cleanup period |
 | `MAX_THINKING_TOKENS` | `31999` | Extended thinking token limit |
-| `statusLine` | `statusline.py` | Custom status line with usage, cost, context |
+| `statusLine` | `statusline.py` | Custom status line with git, tokens, cost, context |
 
 ### Enabled Plugins
 
