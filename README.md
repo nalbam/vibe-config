@@ -69,8 +69,8 @@ vibe-config/
     └── hooks/                # Kiro-specific hooks
         ├── vibe-monitor.py   # Send status to Desktop app / ESP32
         ├── vibe-monitor-agent-stop.kiro.hook
-        ├── vibe-monitor-file-create.kiro.hook
-        ├── vibe-monitor-file-delete.kiro.hook
+        ├── vibe-monitor-file-created.kiro.hook
+        ├── vibe-monitor-file-deleted.kiro.hook
         ├── vibe-monitor-file-edited.kiro.hook
         └── vibe-monitor-prompt-submit.kiro.hook
 ```
