@@ -153,7 +153,23 @@ The `settings.json` file includes:
 | `model` | `opus` | Default Claude model |
 | `cleanupPeriodDays` | `30` | Conversation cleanup period |
 | `MAX_THINKING_TOKENS` | `31999` | Extended thinking token limit |
-| `statusLine` | `statusline.py` | Custom status line with git, tokens, cost, context |
+| `statusLine` | `statusline.py` | Custom status line with git branch emoji, tokens, cost, context |
+
+### Git Branch Emojis
+
+The status line shows branch-specific emojis:
+
+| Branch Type | Emoji | Example |
+|-------------|-------|---------|
+| main/master | 🌿 | `main`, `master` |
+| develop | 🌱 | `develop`, `dev` |
+| feature | ✨ | `feature/xxx` |
+| fix/bugfix | 🐛 | `fix/xxx`, `bugfix/xxx` |
+| hotfix | 🔥 | `hotfix/xxx` |
+| release | 📦 | `release/xxx` |
+| refactor | ♻️ | `refactor/xxx` |
+| docs | 📝 | `docs/xxx` |
+| test | 🧪 | `test/xxx` |
 
 ### Enabled Plugins
 
