@@ -171,7 +171,8 @@ Create `~/.claude/.env.local` for local settings:
 # Debug mode (1: enable, 0: disable)
 # DEBUG=1
 
-# Notification Settings (1: enable, 0: disable, default: 1)
+# Notification Settings (1: enable, 0: disable)
+# Disabled by default in .env.sample to avoid interruptions
 NOTIFY_SYSTEM=1                          # macOS system notification
 NOTIFY_SOUND=1                           # Sound alert (afplay)
 
@@ -180,9 +181,29 @@ NTFY_TOPIC=your-topic                    # ntfy.sh push notification
 SLACK_WEBHOOK_URL=https://hooks.slack.com/...  # Slack webhook
 
 # Vibe Monitor
+VIBE_MONITOR_CACHE=~/.claude/statusline-cache.json  # Cache file path
 VIBE_MONITOR_URL=http://127.0.0.1:19280  # Desktop App URL
 ESP32_SERIAL_PORT=/dev/cu.usbmodem1101   # USB Serial port
 ESP32_HTTP_URL=http://192.168.1.100      # HTTP fallback (WiFi mode)
+```
+
+### Vibe Monitor CLI
+
+The `vibe-monitor.py` script supports CLI commands for manual control:
+
+```bash
+# Lock monitor to a specific project
+python3 ~/.claude/hooks/vibe-monitor.py --lock [project-name]
+
+# Unlock monitor
+python3 ~/.claude/hooks/vibe-monitor.py --unlock
+
+# Get current status
+python3 ~/.claude/hooks/vibe-monitor.py --status
+
+# Get/set lock mode (first-project or on-thinking)
+python3 ~/.claude/hooks/vibe-monitor.py --lock-mode
+python3 ~/.claude/hooks/vibe-monitor.py --lock-mode first-project
 ```
 
 ## Related Projects
