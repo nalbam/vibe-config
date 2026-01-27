@@ -68,6 +68,47 @@ def parse_json_field(data, field, default=""):
 # Git Functions
 # ============================================================================
 
+# Branch emoji mapping based on branch name prefix
+BRANCH_EMOJIS = {
+    "main": "🌿",
+    "master": "🌿",
+    "develop": "🌱",
+    "development": "🌱",
+    "dev": "🌱",
+    "feature": "✨",
+    "feat": "✨",
+    "fix": "🐛",
+    "bugfix": "🐛",
+    "hotfix": "🔥",
+    "release": "📦",
+    "chore": "🧹",
+    "refactor": "♻️",
+    "docs": "📝",
+    "doc": "📝",
+    "test": "🧪",
+    "experiment": "🧪",
+    "exp": "🧪",
+}
+
+def get_branch_emoji(branch):
+    """Get emoji for branch based on name or prefix."""
+    if not branch:
+        return "🌿"
+
+    branch_lower = branch.lower()
+
+    # Check exact match first (main, master, develop, etc.)
+    if branch_lower in BRANCH_EMOJIS:
+        return BRANCH_EMOJIS[branch_lower]
+
+    # Check prefix match (feature/xxx, fix/xxx, etc.)
+    prefix = branch_lower.split("/")[0] if "/" in branch_lower else ""
+    if prefix in BRANCH_EMOJIS:
+        return BRANCH_EMOJIS[prefix]
+
+    # Default emoji
+    return "🌿"
+
 def get_git_info(directory):
     """Get git branch and status information."""
     if not directory:
@@ -327,11 +368,14 @@ def build_statusline(model, dir_name, git_info, context_usage,
     # Directory (📂 icon)
     parts.append(f"{C_BLUE}📂 {dir_name}{C_RESET}")
 
-    # Git info (🌿 icon)
+    # Git info (emoji based on branch type)
     if git_info:
         # Extract branch and status from " git:(branch *)" format
         branch_info = git_info.replace(" git:(", "").rstrip(")")
-        parts.append(f"{C_GREEN}🌿 {branch_info}{C_RESET}")
+        # Get branch name without status indicator for emoji lookup
+        branch_name = branch_info.rstrip(" *")
+        emoji = get_branch_emoji(branch_name)
+        parts.append(f"{C_GREEN}{emoji} {branch_info}{C_RESET}")
 
     # Model (🤖 icon) - remove "Claude " prefix
     short_model = model.replace("Claude ", "") if model.startswith("Claude ") else model
