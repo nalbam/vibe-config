@@ -32,6 +32,7 @@ vibe-config/
 ├── claude/                   # Claude Code settings -> ~/.claude/
 │   ├── CLAUDE.md             # Global Claude Code instructions
 │   ├── settings.json         # Permissions, hooks, status line config
+│   ├── statusline.py         # Custom status line script
 │   ├── .env.sample           # Environment variables template
 │   ├── agents/               # Custom agent definitions
 │   │   ├── architect.md      # System design and architecture
