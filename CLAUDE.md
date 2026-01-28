@@ -59,7 +59,7 @@ Contains hook files for Kiro IDE/CLI vibe-monitor integration.
 
 ## Key Files
 
-- `claude/.env.sample` - Template for environment variables (`~/.claude/.env.local`)
+- `claude/.env.example` - Template for environment variables (`~/.claude/.env.local`)
 - `claude/settings.json` - Defines permissions, hooks, enabled plugins
 - `claude/statusline.py` - Custom status line showing usage, cost, context
 
