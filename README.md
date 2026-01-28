@@ -142,6 +142,17 @@ Display Claude Code and Kiro status in real-time. Supports Claude Code, Kiro IDE
 | **Desktop App** | Frameless Electron app (macOS) on `localhost:19280` |
 | **ESP32 Device** | ESP32-C6-LCD-1.47 via USB Serial or HTTP |
 
+**Monitor States:**
+
+| State | Trigger | Description |
+|-------|---------|-------------|
+| `start` | SessionStart | Session initialized |
+| `thinking` | UserPromptSubmit | Processing user input |
+| `planning` | UserPromptSubmit (plan mode) | Planning mode active |
+| `working` | PreToolUse | Executing tools |
+| `done` | Stop | Task completed |
+| `notification` | Notification | Waiting for user input |
+
 See [vibe-monitor](https://github.com/nalbam/vibe-monitor) for Desktop app and ESP32 firmware.
 
 ## Configuration
@@ -153,7 +164,26 @@ The `settings.json` file includes:
 | `model` | `opus` | Default Claude model |
 | `cleanupPeriodDays` | `30` | Conversation cleanup period |
 | `MAX_THINKING_TOKENS` | `31999` | Extended thinking token limit |
-| `statusLine` | `statusline.py` | Custom status line with git branch emoji, tokens, cost, context |
+| `statusLine` | `statusline.py` | Custom status line (see below) |
+
+### Status Line Display
+
+The custom status line shows real-time session information:
+
+```
+📂 project │ ✨ feature/xxx * │ 🤖 Opus 4 │ 📥 12.5K 📤 3.2K │ 💰 $0.45 │ ⏱️ 2m30s │ +42 -15 │ 🧠 ━━━━━━╌╌╌╌ 62%
+```
+
+| Icon | Description |
+|------|-------------|
+| 📂 | Current project directory |
+| 🌿/✨/🐛/etc | Git branch with type-specific emoji (asterisk if uncommitted changes) |
+| 🤖 | Current Claude model |
+| 📥/📤 | Input/output token usage |
+| 💰 | Session cost in USD |
+| ⏱️ | Session duration |
+| +/- | Lines added/removed |
+| 🧠 | Context window usage with progress bar (green/yellow/red) |
 
 ### Git Branch Emojis
 
@@ -162,14 +192,15 @@ The status line shows branch-specific emojis:
 | Branch Type | Emoji | Example |
 |-------------|-------|---------|
 | main/master | 🌿 | `main`, `master` |
-| develop | 🌱 | `develop`, `dev` |
-| feature | ✨ | `feature/xxx` |
+| develop | 🌱 | `develop`, `dev`, `development` |
+| feature | ✨ | `feature/xxx`, `feat/xxx` |
 | fix/bugfix | 🐛 | `fix/xxx`, `bugfix/xxx` |
 | hotfix | 🔥 | `hotfix/xxx` |
 | release | 📦 | `release/xxx` |
 | refactor | ♻️ | `refactor/xxx` |
-| docs | 📝 | `docs/xxx` |
-| test | 🧪 | `test/xxx` |
+| chore | 🧹 | `chore/xxx` |
+| docs | 📝 | `docs/xxx`, `doc/xxx` |
+| test | 🧪 | `test/xxx`, `experiment/xxx`, `exp/xxx` |
 
 ### Enabled Plugins
 
@@ -188,9 +219,9 @@ Create `~/.claude/.env.local` for local settings:
 # DEBUG=1
 
 # Notification Settings (1: enable, 0: disable)
-# Disabled by default in .env.sample to avoid interruptions
-NOTIFY_SYSTEM=1                          # macOS system notification
-NOTIFY_SOUND=1                           # Sound alert (afplay)
+# Disabled by default to avoid interruptions - set to 1 to enable
+NOTIFY_SYSTEM=0                          # macOS system notification
+NOTIFY_SOUND=0                           # Sound alert (afplay)
 
 # Push Notifications
 NTFY_TOPIC=your-topic                    # ntfy.sh push notification
