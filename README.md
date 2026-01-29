@@ -67,6 +67,8 @@ vibe-config/
 │
 └── kiro/                     # Kiro settings -> ~/.kiro/
     ├── .env.example          # Environment variables template
+    ├── agents/               # Agent definitions
+    │   └── default.json      # Default agent with vibe-monitor hooks
     └── hooks/                # Kiro-specific hooks
         ├── vibe-monitor.py   # Send status to Desktop app / ESP32
         ├── vibe-monitor-agent-stop.kiro.hook
@@ -163,7 +165,7 @@ The `settings.json` file includes:
 | Setting | Value | Description |
 |---------|-------|-------------|
 | `model` | `opus` | Default Claude model |
-| `cleanupPeriodDays` | `30` | Conversation cleanup period |
+| `cleanupPeriodDays` | `3650` | Conversation cleanup period (10 years) |
 | `MAX_THINKING_TOKENS` | `31999` | Extended thinking token limit |
 | `statusLine` | `statusline.py` | Custom status line (see below) |
 
@@ -206,10 +208,13 @@ The status line shows branch-specific emojis:
 ### Enabled Plugins
 
 - `context7` - Up-to-date library documentation
+- `feature-dev` - Feature development assistance
 - `frontend-design` - Frontend design assistance
+- `github` - GitHub integration
 - `code-review` - Code review tools
 - `linear` - Linear issue tracking integration
 - `superpowers` - Advanced skills and workflows
+- `typescript-lsp` - TypeScript language server
 
 ## Environment Variables
 
