@@ -101,8 +101,8 @@ def get_state(event_name, permission_mode="default"):
         "SessionStart": "start",
         "UserPromptSubmit": "thinking",
         "PreToolUse": "working",
-        "Stop": "done",
         "Notification": "notification",
+        "Stop": "done",
     }
     state = state_map.get(event_name, "working")
 
