@@ -85,15 +85,15 @@
       "Bash(yarn:*)",
       "Bash(yq:*)",
       "Bash(zip:*)",
-      "WebFetch(domain:*)",
-      "WebSearch",
       "Skill(docs-sync)",
       "Skill(pr-create)",
+      "Skill(superpowers:brainstorming)",
+      "Skill(superpowers:writing-skills)",
       "Skill(validate)",
       "Skill(vibemon-lock)",
       "Skill(vibemon-mode)",
-      "Skill(superpowers:brainstorming)",
-      "Skill(superpowers:writing-skills)"
+      "WebFetch(domain:*)",
+      "WebSearch"
     ],
     "deny": [
       "Bash(dd if=/dev/zero:*)",
