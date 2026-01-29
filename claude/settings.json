@@ -92,7 +92,7 @@
       "Skill(validate)",
       "Skill(vibemon-lock)",
       "Skill(vibemon-mode)",
-      "WebFetch(domain:*)",
+      "WebFetch",
       "WebSearch"
     ],
     "deny": [
