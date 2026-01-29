@@ -188,11 +188,8 @@ def get_context_usage(input_data):
 
 def get_cache_path():
     """Get the cache file path."""
-    cache_path = os.environ.get("VIBE_MONITOR_CACHE", str(Path.home() / ".claude" / "statusline-cache.json"))
-    # Expand ~ to home directory
-    if cache_path.startswith("~"):
-        cache_path = str(Path.home()) + cache_path[1:]
-    return cache_path
+    cache_path = os.environ.get("VIBE_MONITOR_CACHE", "~/.claude/statusline-cache.json")
+    return os.path.expanduser(cache_path)
 
 def save_to_cache(project, model, memory):
     """Save project metadata to cache file."""
