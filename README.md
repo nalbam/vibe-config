@@ -71,14 +71,21 @@ vibe-config/
     │   └── default.json      # Default agent with vibe-monitor hooks
     └── hooks/                # Kiro-specific hooks
         ├── vibe-monitor.py   # Send status to Desktop app / ESP32
-        ├── vibe-monitor-agent-stop.kiro.hook
-        ├── vibe-monitor-file-created.kiro.hook
-        ├── vibe-monitor-file-deleted.kiro.hook
-        ├── vibe-monitor-file-edited.kiro.hook
-        └── vibe-monitor-prompt-submit.kiro.hook
+        └── *.kiro.hook       # Hook trigger files
 ```
 
 ## Features
+
+### Terminal Session Support
+
+The vibe-monitor tracks terminal sessions for multi-window setups:
+
+| Terminal | Environment Variable | ID Format |
+|----------|---------------------|-----------|
+| iTerm2 | `ITERM_SESSION_ID` | `iterm2:w0t4p0:UUID` |
+| Ghostty | `GHOSTTY_PID` | `ghostty:PID` |
+
+This allows the Desktop App to distinguish between multiple Claude Code sessions.
 
 ### Custom Agents
 
@@ -115,6 +122,24 @@ Automated quality checks and workflow enforcement:
 **Notification:**
 - `notify.sh` - Send completion notifications
 - `vibe-monitor.py` - Update monitor (notification state)
+
+### Kiro Hooks
+
+Kiro IDE/CLI uses different hook events:
+
+| Kiro Event | State | Description |
+|------------|-------|-------------|
+| `agentSpawn` | start | Agent initialized |
+| `promptSubmit` | thinking | Processing user input |
+| `userPromptSubmit` | thinking | User prompt submitted |
+| `preToolUse` | working | Executing tools |
+| `fileCreated` | working | File created |
+| `fileEdited` | working | File edited |
+| `fileDeleted` | working | File deleted |
+| `agentStop` | done | Agent stopped |
+| `stop` | done | Session stopped |
+
+Note: Kiro's `vibe-monitor.py` supports `--lock`, `--unlock`, `--status` but not `--lock-mode`.
 
 ### Skills
 
@@ -155,6 +180,27 @@ Display Claude Code and Kiro status in real-time. Supports Claude Code, Kiro IDE
 | `working` | PreToolUse | Executing tools |
 | `done` | Stop | Task completed |
 | `notification` | Notification | Waiting for user input |
+
+**Payload Structure:**
+
+```json
+{
+  "state": "working",
+  "tool": "Edit",
+  "project": "my-project",
+  "model": "Claude Opus 4",
+  "memory": "62%",
+  "character": "clawd",
+  "terminalId": "iterm2:w0t4p0:UUID"
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `character` | `clawd` for Claude Code, `kiro` for Kiro |
+| `terminalId` | Terminal session identifier (iTerm2/Ghostty) |
+
+**Cache Limit:** The statusline cache keeps metadata for the 10 most recent projects.
 
 See [vibe-monitor](https://github.com/nalbam/vibe-monitor) for Desktop app and ESP32 firmware.
 
