@@ -146,9 +146,10 @@ Note: Kiro's `vibe-monitor.py` supports `--lock`, `--unlock`, `--status` but not
 User-invokable via `/skill-name`:
 
 ```bash
+/commit        # Create git commit with conventional format
+/pr-create     # Create pull request with proper format
 /validate      # Run lint, typecheck, tests with auto-fix
 /docs-sync     # Analyze and update documentation
-/pr-create     # Create pull request with proper format
 /vibemon-lock  # Lock vibe-monitor to current project
 /vibemon-mode  # Change vibe-monitor lock mode
 ```
@@ -303,6 +304,9 @@ python3 ~/.claude/hooks/vibe-monitor.py --status
 # Get/set lock mode (first-project or on-thinking)
 python3 ~/.claude/hooks/vibe-monitor.py --lock-mode
 python3 ~/.claude/hooks/vibe-monitor.py --lock-mode first-project
+
+# Reboot ESP32 device (ESP32 only, not Desktop App)
+python3 ~/.claude/hooks/vibe-monitor.py --reboot
 ```
 
 ## Related Projects
