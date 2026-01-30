@@ -10,8 +10,7 @@ AI-assisted development environment settings for Claude Code and Kiro. This repo
 
 ```bash
 # Sync settings to user directories
-./sync.sh          # Interactive mode (prompts for each change)
-./sync.sh -y       # Auto-yes mode (sync all without prompts)
+./sync.sh          # Auto-yes mode (sync all without prompts, default)
 ./sync.sh -n       # Dry-run mode (show changes only)
 ```
 

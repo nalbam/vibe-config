@@ -17,8 +17,7 @@ bash -c "$(curl -fsSL nalbam.github.io/vibe-config/sync.sh)"
 ### Options
 
 ```bash
-./sync.sh        # Interactive mode (prompts for each change)
-./sync.sh -y     # Auto-yes mode (sync all without prompts)
+./sync.sh        # Auto-yes mode (sync all without prompts, default)
 ./sync.sh -n     # Dry-run mode (show changes only)
 ./sync.sh -h     # Show help
 ```
@@ -139,7 +138,7 @@ Kiro IDE/CLI uses different hook events:
 | `agentStop` | done | Agent stopped |
 | `stop` | done | Session stopped |
 
-Note: Kiro's `vibe-monitor.py` supports `--lock`, `--unlock`, `--status` but not `--lock-mode`.
+Note: Kiro's `vibe-monitor.py` supports all CLI commands: `--lock`, `--unlock`, `--status`, `--lock-mode`, `--reboot`.
 
 ### Skills
 
@@ -283,7 +282,7 @@ SLACK_WEBHOOK_URL=https://hooks.slack.com/...  # Slack webhook
 # Vibe Monitor
 VIBEMON_CACHE_PATH=~/.claude/statusline-cache.json  # Cache file path
 VIBEMON_DESKTOP_URL=http://127.0.0.1:19280  # Desktop App URL
-VIBEMON_SERIAL_PORT=/dev/cu.usbmodem1101   # USB Serial port
+VIBEMON_SERIAL_PORT=/dev/cu.usbmodem*      # USB Serial port (wildcards supported)
 VIBEMON_ESP32_URL=http://192.168.1.100      # HTTP fallback (WiFi mode)
 ```
 
