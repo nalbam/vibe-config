@@ -42,8 +42,6 @@ gh pr create --title "<type>(<scope>): <subject>" --body "$(cat <<'EOF'
 
 ## Test Plan
 - [ ] How to verify changes work
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
 EOF
 )"
 ```

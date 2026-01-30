@@ -85,6 +85,7 @@
       "Bash(yarn:*)",
       "Bash(yq:*)",
       "Bash(zip:*)",
+      "Skill(commit)",
       "Skill(docs-sync)",
       "Skill(pr-create)",
       "Skill(superpowers:brainstorming)",
