@@ -10,6 +10,14 @@ allowed-tools: Read, Bash, Grep, Glob
 
 ## Workflow
 
+### 0. Run Validation First
+Before committing, run `/validate` to ensure all checks pass:
+- Lint
+- Typecheck
+- Tests
+
+**If validation fails, fix all issues before proceeding.**
+
 ### 1. Analyze Changes
 ```bash
 # Check current status (never use -uall flag)
