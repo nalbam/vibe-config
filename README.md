@@ -54,6 +54,7 @@ vibe-config/
 │   │   ├── security.md       # Security best practices
 │   │   └── testing.md        # TDD workflow, 80% coverage
 │   ├── skills/               # User-invokable skills (/skill-name)
+│   │   ├── commit/           # Create git commit with conventional format
 │   │   ├── docs-sync/        # Documentation sync and gap analysis
 │   │   ├── pr-create/        # Create PR with proper format
 │   │   ├── validate/         # Run lint, typecheck, tests
