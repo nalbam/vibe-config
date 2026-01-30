@@ -29,7 +29,7 @@ The `sync.sh` script:
 1. Clones/pulls from `https://github.com/nalbam/vibe-config.git` to `~/.vibe-config`
 2. Compares files using MD5 hashes
 3. Shows diffs for changed files
-4. Prompts user for each change (unless `-y` flag)
+4. Syncs all changes automatically (default auto-yes mode)
 
 ### Claude Code Settings (`claude/`)
 

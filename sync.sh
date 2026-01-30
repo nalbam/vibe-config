@@ -8,9 +8,9 @@
 #   - kiro/   -> ~/.kiro/
 #
 # Usage:
-#   ./sync.sh          # Interactive mode (default)
-#   ./sync.sh -y       # Auto-yes mode (skip prompts)
+#   ./sync.sh          # Auto-yes mode (sync all without prompts, default)
 #   ./sync.sh -n       # Dry-run mode (show changes only)
+#   ./sync.sh -h       # Show help
 ################################################################################
 
 # Repository
