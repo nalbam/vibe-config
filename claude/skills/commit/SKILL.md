@@ -104,6 +104,12 @@ chore: update dependencies to latest versions
 - [ ] Commit is atomic (single purpose)
 - [ ] Message clearly describes changes
 
+## Rules
+
+- Only include actual work done in the message
+- Do NOT add unnecessary lines (Co-Authored-By, Generated with, etc.)
+- Do NOT add promotional or attribution footers
+
 ## Anti-Patterns
 
 - Do NOT commit multiple unrelated changes together

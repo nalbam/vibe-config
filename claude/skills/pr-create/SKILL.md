@@ -83,6 +83,12 @@ refactor(utils): simplify date formatting logic
 - [ ] Edge cases covered
 ```
 
+## Rules
+
+- Only include actual work done in the message
+- Do NOT add unnecessary lines (Co-Authored-By, Generated with, etc.)
+- Do NOT add promotional or attribution footers
+
 ## Tips
 
 - Keep PRs small (< 400 lines)
