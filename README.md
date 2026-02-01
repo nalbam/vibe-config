@@ -284,7 +284,7 @@ SLACK_WEBHOOK_URL=https://hooks.slack.com/...  # Slack webhook
 VIBEMON_CACHE_PATH=~/.claude/statusline-cache.json  # Cache file path
 VIBEMON_DESKTOP_URL=http://127.0.0.1:19280  # Desktop App URL
 VIBEMON_SERIAL_PORT=/dev/cu.usbmodem*      # USB Serial port (wildcards supported)
-VIBEMON_ESP32_URL=http://192.168.1.100      # HTTP fallback (WiFi mode)
+VIBEMON_ESP32_URL=http://192.168.0.185      # HTTP fallback (WiFi mode)
 ```
 
 ### Vibe Monitor CLI
