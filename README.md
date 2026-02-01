@@ -257,11 +257,8 @@ The status line shows branch-specific emojis:
 - `context7` - Up-to-date library documentation
 - `feature-dev` - Feature development assistance
 - `frontend-design` - Frontend design assistance
-- `github` - GitHub integration
 - `code-review` - Code review tools
-- `linear` - Linear issue tracking integration
 - `superpowers` - Advanced skills and workflows
-- `typescript-lsp` - TypeScript language server
 
 ## Environment Variables
 
@@ -282,9 +279,9 @@ SLACK_WEBHOOK_URL=https://hooks.slack.com/...  # Slack webhook
 
 # Vibe Monitor
 VIBEMON_CACHE_PATH=~/.claude/statusline-cache.json  # Cache file path
-VIBEMON_DESKTOP_URL=http://127.0.0.1:19280  # Desktop App URL
-VIBEMON_SERIAL_PORT=/dev/cu.usbmodem*      # USB Serial port (wildcards supported)
-VIBEMON_ESP32_URL=http://192.168.0.185      # HTTP fallback (WiFi mode)
+VIBEMON_AUTO_LAUNCH=0                        # Auto-launch Desktop App (0: disabled)
+VIBEMON_HTTP_URLS=http://127.0.0.1:19280,http://192.168.0.185  # HTTP URLs (comma-separated)
+VIBEMON_SERIAL_PORT=/dev/cu.usbmodem*        # USB Serial port (wildcards supported)
 ```
 
 ### Vibe Monitor CLI
