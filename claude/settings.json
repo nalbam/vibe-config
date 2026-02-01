@@ -141,7 +141,17 @@
         ]
       }
     ],
-    "Stop": [
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/vibe-monitor.py"
+          }
+        ]
+      }
+    ],
+    "Notification": [
       {
         "hooks": [
           {
@@ -155,7 +165,7 @@
         ]
       }
     ],
-    "Notification": [
+    "Stop": [
       {
         "hooks": [
           {
