@@ -12,6 +12,7 @@ Analyze entire codebase and documentation, find gaps, update docs.
 
 ## Rules
 
+- **Skip temporary/generated directories** - apply exclude patterns before scanning
 - **Do NOT create new documentation files** unless explicitly requested
 - Only `README.md` and `CLAUDE.md` in project root
 - All other docs in `docs/` directory
@@ -20,23 +21,27 @@ Analyze entire codebase and documentation, find gaps, update docs.
 
 ## Exclude Patterns
 
-Skip these directories/files when scanning:
-- `node_modules/` - npm dependencies
-- `.git/` - git internals
-- `dist/`, `build/`, `out/`, `target/` - build outputs
-- `coverage/` - test coverage
-- `.next/`, `.nuxt/`, `.svelte-kit/` - framework cache
-- `vendor/` - Go/PHP dependencies
-- `__pycache__/`, `.pytest_cache/` - Python cache
-- `.venv/`, `venv/`, `.env/` - Python virtual environments
-- `*.min.js`, `*.bundle.js` - minified/bundled files
-- Lock files: `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`
-- IDE: `.idea/`, `.vscode/`, `.settings/`
+**Important: Always skip these directories before scanning the codebase.**
+
+These are auto-generated files, not source code - do not document them.
+
+| Category | Directories |
+|----------|-------------|
+| Dependencies | `node_modules/`, `vendor/`, `bower_components/`, `.pnp/` |
+| Build outputs | `dist/`, `build/`, `out/`, `target/`, `.next/`, `.nuxt/`, `.vercel/` |
+| Cache | `.cache/`, `.tmp/`, `tmp/`, `__pycache__/`, `.turbo/`, `.parcel-cache/` |
+| Virtual envs | `.venv/`, `venv/`, `.env/`, `env/` |
+| VCS | `.git/`, `.svn/`, `.hg/` |
+| IDE | `.idea/`, `.vscode/`, `.vs/` |
+| Test outputs | `coverage/`, `.nyc_output/`, `test-results/` |
+| Generated | `*.min.js`, `*.bundle.js`, lock files (`package-lock.json`, etc.) |
+| OS | `.DS_Store`, `Thumbs.db` |
 
 ## Process
 
 ### 1. Analyze Code
-- Scan all source files
+- Apply exclude patterns first
+- Scan only actual source files (src/, lib/, app/, etc.)
 - Extract public APIs, functions, classes
 - Find environment variables, CLI flags
 - Build code inventory
