@@ -109,7 +109,7 @@ def get_config() -> Config:
             http_urls=parse_http_urls(os.environ.get("VIBEMON_HTTP_URLS")),
             serial_port=os.environ.get("VIBEMON_SERIAL_PORT"),
             cache_path=os.path.expanduser(
-                os.environ.get("VIBEMON_CACHE_PATH", "~/.claude/statusline-cache.json")
+                os.environ.get("VIBEMON_CACHE_PATH", "~/.claude/cache/statusline.json")
             ),
             auto_launch=os.environ.get("VIBEMON_AUTO_LAUNCH", "0") == "1",
             vibemon_url=os.environ.get("VIBEMON_URL"),

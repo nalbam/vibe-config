@@ -225,7 +225,7 @@ def get_context_usage(data: dict[str, Any]) -> str:
 
 def get_cache_path() -> str:
     """Get the cache file path."""
-    cache_path = os.environ.get("VIBEMON_CACHE_PATH", "~/.claude/statusline-cache.json")
+    cache_path = os.environ.get("VIBEMON_CACHE_PATH", "~/.claude/cache/statusline.json")
     return os.path.expanduser(cache_path)
 
 def save_to_cache(project: str, model: str, memory: int) -> None:
