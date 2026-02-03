@@ -9,8 +9,7 @@ AI-assisted development environment settings for Claude Code and Kiro. This repo
 ## Commands
 
 ```bash
-# Sync settings to user directories
-./sync.sh          # Auto-yes mode (sync all without prompts, default)
+./sync.sh          # Sync all changes (default)
 ./sync.sh -n       # Dry-run mode (show changes only)
 ./sync.sh -h       # Show help
 ```
@@ -29,7 +28,7 @@ The `sync.sh` script:
 1. Clones/pulls from `https://github.com/nalbam/vibe-config.git` to `~/.vibe-config`
 2. Compares files using MD5 hashes
 3. Shows diffs for changed files
-4. Syncs all changes automatically (default auto-yes mode)
+4. Syncs all changes automatically
 
 ### Claude Code Settings (`claude/`)
 
@@ -38,34 +37,31 @@ The `sync.sh` script:
 | `CLAUDE.md` | Global instructions loaded for all projects |
 | `settings.json` | Permissions, hooks, model (opus), plugins |
 | `agents/*.md` | Specialized sub-agents (planner, builder, debugger, etc.) |
-| `hooks/` | Event-driven scripts (vibe-monitor.py, notify.sh) |
+| `hooks/vibemon.py` | VibeMon status updates |
 | `rules/*.md` | Always-loaded guidelines (language, security, testing) |
 | `skills/*/SKILL.md` | User-invokable skills via `/skill-name` |
-| `sounds/*.mp3` | Audio notifications |
+| `statusline.py` | Custom status line showing usage, cost, context |
 
 ### Hook Events
 
 | Event | Script | Purpose |
 |-------|--------|---------|
-| SessionStart | vibe-monitor.py | Initialize status |
-| UserPromptSubmit | vibe-monitor.py | Update to thinking state |
-| PreToolUse | vibe-monitor.py | Update to working state |
-| Stop | notify.sh, vibe-monitor.py | Send notifications, done state |
-| Notification | notify.sh, vibe-monitor.py | Alert user for input |
+| SessionStart | vibemon.py | Initialize status |
+| UserPromptSubmit | vibemon.py | Update to thinking state |
+| PreToolUse | vibemon.py | Update to working state |
+| Stop | vibemon.py | Done state |
+| Notification | vibemon.py | Alert user for input |
 
 ### Kiro Settings (`kiro/`)
 
-Contains hook files for Kiro IDE/CLI vibe-monitor integration.
-
-## Key Files
-
-- `claude/.env.example` - Template for environment variables (`~/.claude/.env.local`)
-- `claude/settings.json` - Defines permissions, hooks, enabled plugins
-- `claude/statusline.py` - Custom status line showing usage, cost, context
+| Component | Purpose |
+|-----------|---------|
+| `agents/default.json` | Default agent configuration |
+| `hooks/vibemon.py` | VibeMon status updates |
 
 ## Testing Changes
 
 1. Make edits in this repository
 2. Run `./sync.sh -n` to preview changes
-3. Run `./sync.sh` to interactively apply changes
+3. Run `./sync.sh` to apply changes
 4. Test in a new Claude Code session

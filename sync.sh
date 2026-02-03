@@ -1,331 +1,178 @@
 #!/bin/bash
 
 ################################################################################
-# sync.sh - Interactive vibe-config settings sync
+# sync.sh - Sync vibe-config settings
 #
-# Clones or pulls vibe-config repo, then syncs:
+# Syncs:
 #   - claude/ -> ~/.claude/
 #   - kiro/   -> ~/.kiro/
 #
 # Usage:
-#   ./sync.sh          # Auto-yes mode (sync all without prompts, default)
+#   ./sync.sh          # Sync all (default)
 #   ./sync.sh -n       # Dry-run mode (show changes only)
 #   ./sync.sh -h       # Show help
 ################################################################################
 
-# Repository
-REPO_URL="https://github.com/nalbam/vibe-config.git"
+set -e
 
-# Directories
+REPO_URL="https://github.com/nalbam/vibe-config.git"
 SOURCE_DIR="${HOME}/.vibe-config"
 
-# Sync targets: source_subdir:target_dir
 SYNC_TARGETS=(
   "claude:${HOME}/.claude"
   "kiro:${HOME}/.kiro"
 )
 
-# Options
-AUTO_YES=true
 DRY_RUN=false
-SYNC_ALL=false
 
 # Counters
 COUNT_NEW=0
 COUNT_UPDATED=0
-COUNT_SKIPPED=0
 COUNT_IDENTICAL=0
 
 # Colors
-command -v tput >/dev/null && TPUT=true
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m'
 
-################################################################################
-# Helper Functions
-################################################################################
+log_info()  { echo -e "${BLUE}  ℹ $*${NC}"; }
+log_ok()    { echo -e "${GREEN}  ✓ $*${NC}"; }
+log_new()   { echo -e "${CYAN}  + $*${NC}"; }
+log_warn()  { echo -e "${YELLOW}  ⚠ $*${NC}"; }
 
-_echo() {
-  if [ "${TPUT}" != "" ] && [ "$2" != "" ]; then
-    echo -e "$(tput setaf $2)$1$(tput sgr0)"
-  else
-    echo -e "$1"
-  fi
-}
-
-_info() {
-  _echo "  ℹ $@" 4
-}
-
-_ok() {
-  _echo "  ✓ $@" 2
-}
-
-_skip() {
-  _echo "  ⊘ $@" 3
-}
-
-_warn() {
-  _echo "  ⚠ $@" 3
-}
-
-_new() {
-  _echo "  + $@" 6
-}
-
-_diff_header() {
-  _echo "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" 4
-  _echo "  File: $1" 4
-  _echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" 4
-}
-
-# Show diff between two files
-_show_diff() {
-  local source_file="$1"
-  local target_file="$2"
-
-  if command -v colordiff >/dev/null 2>&1; then
-    diff -u "$target_file" "$source_file" | colordiff | head -50
-  else
-    diff -u "$target_file" "$source_file" | head -50
-  fi
-
-  local total_lines=$(diff -u "$target_file" "$source_file" | wc -l)
-  if [ "$total_lines" -gt 50 ]; then
-    _warn "... (${total_lines} lines total, showing first 50)"
-  fi
-}
-
-# Prompt user for action
-# Returns: 0=yes, 1=no, 2=all, 3=quit
-_prompt_sync() {
-  local prompt="$1"
-
-  if [ "$AUTO_YES" = true ] || [ "$SYNC_ALL" = true ]; then
-    return 0
-  fi
-
-  if [ "$DRY_RUN" = true ]; then
-    return 1
-  fi
-
-  while true; do
-    _echo "\n  $prompt [y/n/a/q] " 5
-    read -r -n 1 answer </dev/tty
-    echo
-    case "$answer" in
-      y|Y) return 0 ;;
-      n|N) return 1 ;;
-      a|A) SYNC_ALL=true; return 0 ;;
-      q|Q) return 3 ;;
-      *) _warn "Please answer y(yes), n(no), a(all), or q(quit)" ;;
-    esac
-  done
-}
-
-# Get MD5 hash (cross-platform)
-_md5() {
-  if [ "$(uname)" == "Darwin" ]; then
+md5_hash() {
+  if [[ "$(uname)" == "Darwin" ]]; then
     md5 -q "$1" 2>/dev/null
   else
     md5sum "$1" 2>/dev/null | awk '{print $1}'
   fi
 }
 
-# Check if file is binary
-_is_binary() {
-  local file="$1"
-  if file "$file" | grep -q "text"; then
-    return 1
+is_binary() {
+  file "$1" | grep -qv "text"
+}
+
+copy_file() {
+  local src="$1" dst="$2"
+  mkdir -p "$(dirname "$dst")"
+  cp "$src" "$dst"
+}
+
+show_diff() {
+  local src="$1" dst="$2"
+
+  if command -v colordiff >/dev/null 2>&1; then
+    diff -u "$dst" "$src" | colordiff | head -30
   else
-    return 0
-  fi
-}
-
-# Copy file with directory creation
-_copy_file() {
-  local source_file="$1"
-  local target_file="$2"
-
-  local target_dir=$(dirname "$target_file")
-  if [ ! -d "$target_dir" ]; then
-    mkdir -p "$target_dir"
+    diff -u "$dst" "$src" | head -30
   fi
 
-  cp "$source_file" "$target_file"
+  local total
+  total=$(diff -u "$dst" "$src" | wc -l)
+  if [[ $total -gt 30 ]]; then
+    log_warn "... (${total} lines total, showing first 30)"
+  fi
 }
-
-################################################################################
-# Main Logic
-################################################################################
 
 # Parse arguments
-while getopts "ynh" opt; do
+while getopts "nh" opt; do
   case $opt in
-    y) AUTO_YES=true ;;
     n) DRY_RUN=true ;;
     h)
-      echo "Usage: $0 [-y] [-n] [-h]"
-      echo "  -y  Auto-yes mode (sync all without prompts)"
+      echo "Usage: $0 [-n] [-h]"
       echo "  -n  Dry-run mode (show changes only)"
       echo "  -h  Show this help"
       exit 0
       ;;
     *)
-      echo "Usage: $0 [-y] [-n] [-h]"
+      echo "Usage: $0 [-n] [-h]"
       exit 1
       ;;
   esac
 done
 
-# Banner
-_echo "\n╔════════════════════════════════════════════════════════════════╗" 6
-_echo "║                     VIBE-CONFIG SETTINGS SYNC                  ║" 6
-_echo "╚════════════════════════════════════════════════════════════════╝" 6
+echo -e "\n${CYAN}═══════════════════════════════════════════════════════════════${NC}"
+echo -e "${CYAN}                    VIBE-CONFIG SETTINGS SYNC                   ${NC}"
+echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
 
-if [ "$DRY_RUN" = true ]; then
-  _warn "Dry-run mode: No files will be modified"
-fi
-
-if [ "$AUTO_YES" = true ]; then
-  _info "Auto-yes mode: All changes will be applied"
+if [[ "$DRY_RUN" == true ]]; then
+  log_warn "Dry-run mode: No files will be modified"
 fi
 
 # Clone or pull repository
-_echo "\n▶ Checking repository..." 6
+echo -e "\n${CYAN}▶ Checking repository...${NC}"
 
-if [ ! -d "$SOURCE_DIR" ]; then
-  _info "Cloning repository: $REPO_URL"
-  if git clone "$REPO_URL" "$SOURCE_DIR"; then
-    _ok "Repository cloned successfully"
-  else
-    _warn "Failed to clone repository"
-    exit 1
-  fi
+if [[ ! -d "$SOURCE_DIR" ]]; then
+  log_info "Cloning: $REPO_URL"
+  git clone "$REPO_URL" "$SOURCE_DIR"
+  log_ok "Cloned successfully"
 else
-  _info "Updating repository: $SOURCE_DIR"
-  if cd "$SOURCE_DIR" && git pull; then
-    _ok "Repository updated successfully"
-  else
-    _warn "Failed to update repository"
-    exit 1
-  fi
+  log_info "Pulling: $SOURCE_DIR"
+  git -C "$SOURCE_DIR" pull
+  log_ok "Updated successfully"
 fi
 
 # Sync each target
 for target_config in "${SYNC_TARGETS[@]}"; do
-  source_subdir="${target_config%%:*}"
-  target_dir="${target_config#*:}"
-  source_path="$SOURCE_DIR/$source_subdir"
+  src_subdir="${target_config%%:*}"
+  dst_dir="${target_config#*:}"
+  src_path="$SOURCE_DIR/$src_subdir"
 
   # Skip if source directory doesn't exist or is empty
-  if [ ! -d "$source_path" ] || [ -z "$(ls -A "$source_path" 2>/dev/null)" ]; then
-    _info "Skipping $source_subdir/ (empty or not found)"
+  if [[ ! -d "$src_path" ]] || [[ -z "$(ls -A "$src_path" 2>/dev/null)" ]]; then
+    log_info "Skipping $src_subdir/ (empty or not found)"
     continue
   fi
 
-  _echo "\n▶ Syncing $source_subdir/ -> $target_dir/" 6
+  echo -e "\n${CYAN}▶ Syncing $src_subdir/ -> $dst_dir/${NC}"
 
   # Create target directory if needed
-  if [ ! -d "$target_dir" ]; then
-    _info "Creating target directory: $target_dir"
-    if [ "$DRY_RUN" = false ]; then
-      mkdir -p "$target_dir"
-    fi
+  if [[ ! -d "$dst_dir" ]] && [[ "$DRY_RUN" == false ]]; then
+    mkdir -p "$dst_dir"
   fi
 
-  # Find all files in source subdirectory
-  while IFS= read -r -d '' source_file; do
-    # Get relative path (relative to source_path)
-    rel_path="${source_file#$source_path/}"
-    target_file="$target_dir/$rel_path"
+  # Find and process all files
+  while IFS= read -r -d '' src_file; do
+    rel_path="${src_file#$src_path/}"
+    dst_file="$dst_dir/$rel_path"
 
-    # Check if target exists
-    if [ ! -f "$target_file" ]; then
+    if [[ ! -f "$dst_file" ]]; then
       # New file
-      _diff_header "$source_subdir/$rel_path"
-      _new "NEW FILE"
-
-      if ! _is_binary "$source_file"; then
-        _echo "  Content preview:" 4
-        head -20 "$source_file" | sed 's/^/    /'
-        total_lines=$(wc -l < "$source_file")
-        if [ "$total_lines" -gt 20 ]; then
-          _warn "    ... (${total_lines} lines total)"
-        fi
-      else
-        _info "Binary file ($(du -h "$source_file" | cut -f1))"
+      log_new "NEW: $rel_path"
+      if [[ "$DRY_RUN" == false ]]; then
+        copy_file "$src_file" "$dst_file"
       fi
-
-      _prompt_sync "Add this new file?"
-      case $? in
-        0)
-          if [ "$DRY_RUN" = false ]; then
-            _copy_file "$source_file" "$target_file"
-          fi
-          _ok "Added: $rel_path"
-          COUNT_NEW=$((COUNT_NEW + 1))
-          ;;
-        1)
-          _skip "Skipped: $rel_path"
-          COUNT_SKIPPED=$((COUNT_SKIPPED + 1))
-          ;;
-        3)
-          _warn "Sync cancelled by user"
-          break 2
-          ;;
-      esac
-
+      COUNT_NEW=$((COUNT_NEW + 1))
     else
-      # File exists - compare
-      source_md5=$(_md5 "$source_file")
-      target_md5=$(_md5 "$target_file")
+      # Existing file - compare
+      src_md5=$(md5_hash "$src_file")
+      dst_md5=$(md5_hash "$dst_file")
 
-      if [ "$source_md5" = "$target_md5" ]; then
-        # Identical
+      if [[ "$src_md5" == "$dst_md5" ]]; then
         COUNT_IDENTICAL=$((COUNT_IDENTICAL + 1))
       else
-        # Different
-        _diff_header "$source_subdir/$rel_path"
-
-        if ! _is_binary "$source_file"; then
-          _show_diff "$source_file" "$target_file"
-        else
-          _info "Binary file changed"
-          _info "  Source: $(du -h "$source_file" | cut -f1)"
-          _info "  Target: $(du -h "$target_file" | cut -f1)"
+        log_ok "UPDATE: $rel_path"
+        if ! is_binary "$src_file"; then
+          show_diff "$src_file" "$dst_file"
         fi
-
-        _prompt_sync "Apply this change?"
-        case $? in
-          0)
-            if [ "$DRY_RUN" = false ]; then
-              _copy_file "$source_file" "$target_file"
-            fi
-            _ok "Updated: $rel_path"
-            COUNT_UPDATED=$((COUNT_UPDATED + 1))
-            ;;
-          1)
-            _skip "Skipped: $rel_path"
-            COUNT_SKIPPED=$((COUNT_SKIPPED + 1))
-            ;;
-          3)
-            _warn "Sync cancelled by user"
-            break 2
-            ;;
-        esac
+        if [[ "$DRY_RUN" == false ]]; then
+          copy_file "$src_file" "$dst_file"
+        fi
+        COUNT_UPDATED=$((COUNT_UPDATED + 1))
       fi
     fi
-
-  done < <(find "$source_path" -type f -not -path '*/.git/*' -print0 | sort -z)
+  done < <(find "$src_path" -type f -not -path '*/.git/*' -print0 | sort -z)
 done
 
 # Summary
-_echo "\n╔════════════════════════════════════════════════════════════════╗" 2
-_echo "║                         SYNC COMPLETE                          ║" 2
-_echo "╚════════════════════════════════════════════════════════════════╝" 2
-_echo ""
-_info "Summary:"
-_ok "  New files added:  $COUNT_NEW"
-_ok "  Files updated:    $COUNT_UPDATED"
-_skip "  Files skipped:    $COUNT_SKIPPED"
-_info "  Already in sync:  $COUNT_IDENTICAL"
-_echo ""
+echo -e "\n${GREEN}═══════════════════════════════════════════════════════════════${NC}"
+echo -e "${GREEN}                         SYNC COMPLETE                          ${NC}"
+echo -e "${GREEN}═══════════════════════════════════════════════════════════════${NC}"
+echo
+log_info "Summary:"
+log_new "  New files:     $COUNT_NEW"
+log_ok "  Updated:       $COUNT_UPDATED"
+log_info "  Already sync:  $COUNT_IDENTICAL"
+echo
