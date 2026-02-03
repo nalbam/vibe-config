@@ -16,34 +16,39 @@ from pathlib import Path
 from typing import Any
 
 # ============================================================================
-# Environment Loading
+# Configuration Loading
 # ============================================================================
 
-def load_env() -> None:
-    """Load environment variables from .env.local file."""
-    env_file = Path.home() / ".vibemon" / ".env.local"
-    if not env_file.exists():
+def load_config() -> None:
+    """Load configuration from config.json and set as environment variables."""
+    config_file = Path.home() / ".vibemon" / "config.json"
+    if not config_file.exists():
         return
 
-    with open(env_file) as f:
-        for line in f:
-            line = line.strip()
-            # Skip comments and empty lines
-            if not line or line.startswith("#"):
-                continue
-            # Remove 'export ' prefix if present
-            if line.startswith("export "):
-                line = line[7:]
-            if "=" in line:
-                key, _, value = line.partition("=")
-                # Remove quotes if present
-                value = value.strip().strip('"').strip("'")
-                # Expand ~ to home directory
-                if value.startswith("~"):
-                    value = str(Path.home()) + value[1:]
-                os.environ.setdefault(key.strip(), value)
+    try:
+        with open(config_file) as f:
+            config = json.load(f)
+    except (json.JSONDecodeError, IOError):
+        return
 
-load_env()
+    # Map config keys to environment variables
+    key_mapping = {
+        "debug": ("DEBUG", lambda v: "1" if v else "0"),
+        "cache_path": ("VIBEMON_CACHE_PATH", str),
+        "auto_launch": ("VIBEMON_AUTO_LAUNCH", lambda v: "1" if v else "0"),
+        "http_urls": ("VIBEMON_HTTP_URLS", lambda v: ",".join(v) if isinstance(v, list) else str(v)),
+        "serial_port": ("VIBEMON_SERIAL_PORT", str),
+        "vibemon_url": ("VIBEMON_URL", str),
+        "vibemon_token": ("VIBEMON_TOKEN", str),
+    }
+
+    for config_key, (env_key, converter) in key_mapping.items():
+        if config_key in config and config[config_key] is not None:
+            value = converter(config[config_key])
+            if value:
+                os.environ.setdefault(env_key, value)
+
+load_config()
 
 DEBUG = os.environ.get("DEBUG", "0") == "1"
 VIBE_MONITOR_MAX_PROJECTS = 10
