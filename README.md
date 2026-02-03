@@ -17,7 +17,7 @@ bash -c "$(curl -fsSL nalbam.github.io/vibe-config/sync.sh)"
 ### Options
 
 ```bash
-./sync.sh        # Auto-yes mode (sync all without prompts, default)
+./sync.sh        # Sync all changes (default)
 ./sync.sh -n     # Dry-run mode (show changes only)
 ./sync.sh -h     # Show help
 ```
@@ -32,7 +32,6 @@ vibe-config/
 │   ├── CLAUDE.md             # Global Claude Code instructions
 │   ├── settings.json         # Permissions, hooks, status line config
 │   ├── statusline.py         # Custom status line script
-│   ├── .env.example          # Environment variables template
 │   ├── agents/               # Custom agent definitions
 │   │   ├── architect.md      # System design and architecture
 │   │   ├── builder.md        # Build error resolution
@@ -43,8 +42,7 @@ vibe-config/
 │   │   ├── refactorer.md     # Code refactoring
 │   │   └── test-writer.md    # Test generation
 │   ├── hooks/                # Automated workflow hooks
-│   │   ├── vibe-monitor.py   # Send status to Desktop app / ESP32
-│   │   └── notify.sh         # Multi-platform notifications
+│   │   └── vibemon.py        # Send status to Desktop app / ESP32
 │   ├── rules/                # Always-follow guidelines
 │   │   ├── coding-style.md   # Immutability, file organization
 │   │   ├── git-workflow.md   # Commit format, PR process
@@ -53,25 +51,17 @@ vibe-config/
 │   │   ├── performance.md    # Model selection strategy
 │   │   ├── security.md       # Security best practices
 │   │   └── testing.md        # TDD workflow, 80% coverage
-│   ├── skills/               # User-invokable skills (/skill-name)
-│   │   ├── commit/           # Create git commit with conventional format
-│   │   ├── docs-sync/        # Documentation sync and gap analysis
-│   │   ├── pr-create/        # Create PR with proper format
-│   │   ├── validate/         # Run lint, typecheck, tests
-│   │   ├── vibemon-lock/     # Lock vibe-monitor to current project
-│   │   └── vibemon-mode/     # Change vibe-monitor lock mode
-│   └── sounds/               # Audio notifications
-│       ├── ding1.mp3
-│       ├── ding2.mp3
-│       └── ding3.mp3
+│   └── skills/               # User-invokable skills (/skill-name)
+│       ├── commit/           # Create git commit with conventional format
+│       ├── docs-sync/        # Documentation sync and gap analysis
+│       ├── pr-create/        # Create PR with proper format
+│       └── validate/         # Run lint, typecheck, tests
 │
 └── kiro/                     # Kiro settings -> ~/.kiro/
-    ├── .env.example          # Environment variables template
     ├── agents/               # Agent definitions
     │   └── default.json      # Default agent with vibe-monitor hooks
     └── hooks/                # Kiro-specific hooks
-        ├── vibe-monitor.py   # Send status to Desktop app / ESP32
-        └── *.kiro.hook       # Hook trigger files
+        └── vibemon.py        # Send status to Desktop app / ESP32
 ```
 
 ## Features
@@ -106,22 +96,13 @@ Specialized agents for delegated tasks:
 
 Automated quality checks and workflow enforcement:
 
-**SessionStart:**
-- `vibe-monitor.py` - Initialize monitor status
-
-**UserPromptSubmit:**
-- `vibe-monitor.py` - Update monitor (thinking state)
-
-**PreToolUse:**
-- `vibe-monitor.py` - Update monitor (working state)
-
-**Stop:**
-- `notify.sh` - Send completion notifications
-- `vibe-monitor.py` - Update monitor (done state)
-
-**Notification:**
-- `notify.sh` - Send completion notifications
-- `vibe-monitor.py` - Update monitor (notification state)
+| Event | Script | Description |
+|-------|--------|-------------|
+| SessionStart | vibemon.py | Initialize monitor status |
+| UserPromptSubmit | vibemon.py | Update monitor (thinking state) |
+| PreToolUse | vibemon.py | Update monitor (working state) |
+| Stop | vibemon.py | Update monitor (done state) |
+| Notification | vibemon.py | Update monitor (notification state) |
 
 ### Kiro Hooks
 
@@ -139,7 +120,7 @@ Kiro IDE/CLI uses different hook events:
 | `agentStop` | done | Agent stopped |
 | `stop` | done | Session stopped |
 
-Note: Kiro's `vibe-monitor.py` supports all CLI commands: `--lock`, `--unlock`, `--status`, `--lock-mode`, `--reboot`.
+Note: Kiro's `vibemon.py` supports CLI commands: `--lock`, `--unlock`, `--status`, `--lock-mode`, `--reboot`.
 
 ### Skills
 
@@ -150,17 +131,7 @@ User-invokable via `/skill-name`:
 /pr-create     # Create pull request with proper format
 /validate      # Run lint, typecheck, tests with auto-fix
 /docs-sync     # Analyze and update documentation
-/vibemon-lock  # Lock vibe-monitor to current project
-/vibemon-mode  # Change vibe-monitor lock mode
 ```
-
-### Notification System
-
-The `notify.sh` hook supports multiple platforms:
-- **macOS**: Native notifications + audio alerts
-- **WSL**: PowerShell beep notifications
-- **ntfy.sh**: Push notifications (set `NTFY_TOPIC`)
-- **Slack**: Webhook notifications (set `SLACK_WEBHOOK_URL`)
 
 ### Vibe Monitor
 
@@ -268,15 +239,6 @@ Create `~/.claude/.env.local` for local settings:
 # Debug mode (1: enable, 0: disable)
 # DEBUG=1
 
-# Notification Settings (1: enable, 0: disable)
-# Disabled by default to avoid interruptions - set to 1 to enable
-NOTIFY_SYSTEM=0                          # macOS system notification
-NOTIFY_SOUND=0                           # Sound alert (afplay)
-
-# Push Notifications
-NTFY_TOPIC=your-topic                    # ntfy.sh push notification
-SLACK_WEBHOOK_URL=https://hooks.slack.com/...  # Slack webhook
-
 # Vibe Monitor
 VIBEMON_CACHE_PATH=~/.claude/statusline-cache.json  # Cache file path
 VIBEMON_AUTO_LAUNCH=0                        # Auto-launch Desktop App (0: disabled)
@@ -286,24 +248,24 @@ VIBEMON_SERIAL_PORT=/dev/cu.usbmodem*        # USB Serial port (wildcards suppor
 
 ### Vibe Monitor CLI
 
-The `vibe-monitor.py` script supports CLI commands for manual control:
+The `vibemon.py` script supports CLI commands for manual control:
 
 ```bash
 # Lock monitor to a specific project
-python3 ~/.claude/hooks/vibe-monitor.py --lock [project-name]
+python3 ~/.claude/hooks/vibemon.py --lock [project-name]
 
 # Unlock monitor
-python3 ~/.claude/hooks/vibe-monitor.py --unlock
+python3 ~/.claude/hooks/vibemon.py --unlock
 
 # Get current status
-python3 ~/.claude/hooks/vibe-monitor.py --status
+python3 ~/.claude/hooks/vibemon.py --status
 
 # Get/set lock mode (first-project or on-thinking)
-python3 ~/.claude/hooks/vibe-monitor.py --lock-mode
-python3 ~/.claude/hooks/vibe-monitor.py --lock-mode first-project
+python3 ~/.claude/hooks/vibemon.py --lock-mode
+python3 ~/.claude/hooks/vibemon.py --lock-mode first-project
 
 # Reboot ESP32 device (ESP32 only, not Desktop App)
-python3 ~/.claude/hooks/vibe-monitor.py --reboot
+python3 ~/.claude/hooks/vibemon.py --reboot
 ```
 
 ## Related Projects
