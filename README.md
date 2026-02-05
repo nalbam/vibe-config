@@ -174,7 +174,7 @@ Display Claude Code and Kiro status in real-time. Supports Claude Code, Kiro IDE
 
 **Cache Limit:** The statusline cache keeps metadata for the 10 most recent projects.
 
-See [vibemon-app](https://github.com/nalbam/vibemon-app) for Desktop app and ESP32 firmware.
+See [vibemon](https://github.com/nalbam/vibemon) for Desktop app and ESP32 firmware.
 
 ## Configuration
 
@@ -270,7 +270,7 @@ python3 ~/.claude/hooks/vibemon.py --reboot
 
 ## Related Projects
 
-- [vibemon-app](https://github.com/nalbam/vibemon-app) - ESP32 status display for Claude Code
+- [vibemon](https://github.com/nalbam/vibemon) - ESP32 status display for Claude Code
 - [dotfiles](https://github.com/nalbam/dotfiles) - Development environment setup
 
 ## License
