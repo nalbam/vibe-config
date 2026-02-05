@@ -44,10 +44,10 @@ target/
 
 # claude
 .claude/
+.context-*.md
+.context.md
 .prompt-*.md
 .prompt.md
-prompt-*.md
-prompt.md
 
 # claude local env
 claude/env.local

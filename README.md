@@ -53,6 +53,8 @@ vibe-config/
 │   │   └── testing.md        # TDD workflow, 80% coverage
 │   └── skills/               # User-invokable skills (/skill-name)
 │       ├── commit/           # Create git commit with conventional format
+│       ├── context-init/     # Initialize and save project context
+│       ├── context-load/     # Load saved project context
 │       ├── docs-sync/        # Documentation sync and gap analysis
 │       ├── pr-create/        # Create PR with proper format
 │       └── validate/         # Run lint, typecheck, tests
@@ -131,6 +133,8 @@ User-invokable via `/skill-name`:
 /pr-create     # Create pull request with proper format
 /validate      # Run lint, typecheck, tests with auto-fix
 /docs-sync     # Analyze and update documentation
+/context-init  # Initialize and save project context
+/context-load  # Load saved project context
 ```
 
 ### Vibe Monitor
