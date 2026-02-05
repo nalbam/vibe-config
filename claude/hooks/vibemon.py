@@ -289,17 +289,17 @@ def build_payload(state: str, tool: str, project: str) -> dict[str, Any]:
 
 def _get_serial_lock_path(port: str) -> str:
     """Get lock file path for serial port."""
-    return f"/tmp/vibe-monitor-serial-{port.replace('/', '_')}.lock"
+    return f"/tmp/vibemon-serial-{port.replace('/', '_')}.lock"
 
 
 def _get_serial_debounce_path(port: str) -> str:
     """Get debounce file path for serial port."""
-    return f"/tmp/vibe-monitor-serial-{port.replace('/', '_')}.debounce"
+    return f"/tmp/vibemon-serial-{port.replace('/', '_')}.debounce"
 
 
 def _get_serial_debounce_lock_path(port: str) -> str:
     """Get debounce lock file path for serial port."""
-    return f"/tmp/vibe-monitor-serial-{port.replace('/', '_')}.dlock"
+    return f"/tmp/vibemon-serial-{port.replace('/', '_')}.dlock"
 
 
 def _acquire_lock(lock_fd: int, max_retries: int = SERIAL_LOCK_MAX_RETRIES) -> bool:
@@ -727,7 +727,7 @@ def launch_desktop() -> None:
         shell = get_user_shell()
         debug_log(f"Using shell: {shell}")
         subprocess.Popen(
-            [shell, "-l", "-c", "npx vibe-monitor@latest"],
+            [shell, "-l", "-c", "npx vibemon@latest"],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             start_new_session=True,

@@ -59,7 +59,7 @@ vibe-config/
 │
 └── kiro/                     # Kiro settings -> ~/.kiro/
     ├── agents/               # Agent definitions
-    │   └── default.json      # Default agent with vibe-monitor hooks
+    │   └── default.json      # Default agent with vibemon hooks
     └── hooks/                # Kiro-specific hooks
         └── vibemon.py        # Send status to Desktop app / ESP32
 ```
@@ -68,7 +68,7 @@ vibe-config/
 
 ### Terminal Session Support
 
-The vibe-monitor tracks terminal sessions for multi-window setups:
+The vibemon tracks terminal sessions for multi-window setups:
 
 | Terminal | Environment Variable | ID Format |
 |----------|---------------------|-----------|
@@ -174,7 +174,7 @@ Display Claude Code and Kiro status in real-time. Supports Claude Code, Kiro IDE
 
 **Cache Limit:** The statusline cache keeps metadata for the 10 most recent projects.
 
-See [vibe-monitor](https://github.com/nalbam/vibe-monitor) for Desktop app and ESP32 firmware.
+See [vibemon-app](https://github.com/nalbam/vibemon-app) for Desktop app and ESP32 firmware.
 
 ## Configuration
 
@@ -270,7 +270,7 @@ python3 ~/.claude/hooks/vibemon.py --reboot
 
 ## Related Projects
 
-- [vibe-monitor](https://github.com/nalbam/vibe-monitor) - ESP32 status display for Claude Code
+- [vibemon-app](https://github.com/nalbam/vibemon-app) - ESP32 status display for Claude Code
 - [dotfiles](https://github.com/nalbam/dotfiles) - Development environment setup
 
 ## License
