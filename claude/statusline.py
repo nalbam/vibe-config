@@ -40,6 +40,7 @@ def load_config() -> None:
         "serial_port": ("VIBEMON_SERIAL_PORT", str),
         "vibemon_url": ("VIBEMON_URL", str),
         "vibemon_token": ("VIBEMON_TOKEN", str),
+        "token_reset_hours": ("VIBEMON_TOKEN_RESET_HOURS", str),
     }
 
     for config_key, (env_key, converter) in key_mapping.items():
@@ -52,6 +53,10 @@ load_config()
 
 DEBUG = os.environ.get("DEBUG", "0") == "1"
 VIBE_MONITOR_MAX_PROJECTS = 10
+
+# Token reset window: 5h for Pro/Max, 0 to disable (Enterprise)
+TOKEN_RESET_HOURS = int(os.environ.get("VIBEMON_TOKEN_RESET_HOURS", "5") or "5")
+TOKEN_RESET_MS = TOKEN_RESET_HOURS * 3600 * 1000
 
 # Lock file timeout constants
 LOCK_TIMEOUT_SECONDS = 5
@@ -409,6 +414,64 @@ def format_cost(cost: float | str | None) -> str:
         return "$0.00"
 
 # ============================================================================
+# Token Reset Functions
+# ============================================================================
+
+def get_token_reset_remaining(duration_ms: int | float | str | None) -> str:
+    """Calculate remaining time until token usage resets.
+
+    Based on the 5-hour rolling window that starts with the first message.
+    Returns formatted remaining time, or "" if disabled (Enterprise).
+    """
+    if TOKEN_RESET_MS <= 0:
+        return ""
+
+    if duration_ms is None or duration_ms == "null" or duration_ms == 0:
+        return ""
+
+    try:
+        elapsed_ms = int(duration_ms)
+        remaining_ms = TOKEN_RESET_MS - (elapsed_ms % TOKEN_RESET_MS)
+
+        # If remaining equals full window, session just started or just reset
+        if remaining_ms == TOKEN_RESET_MS:
+            remaining_ms = TOKEN_RESET_MS
+
+        total_seconds = remaining_ms // 1000
+        hours, remainder = divmod(total_seconds, 3600)
+        minutes, _ = divmod(remainder, 60)
+
+        if hours > 0:
+            return f"{hours}h{minutes:02d}m"
+        return f"{minutes}m"
+    except (ValueError, TypeError):
+        return ""
+
+
+def format_token_reset(remaining: str, duration_ms: int | float | str | None) -> str:
+    """Format token reset display with color based on urgency."""
+    if not remaining:
+        return ""
+
+    try:
+        elapsed_ms = int(duration_ms)
+        remaining_ms = TOKEN_RESET_MS - (elapsed_ms % TOKEN_RESET_MS)
+        remaining_pct = remaining_ms * 100 // TOKEN_RESET_MS
+
+        # Color: green > 33%, yellow 10-33%, red < 10%
+        if remaining_pct <= 10:
+            color = C_RED
+        elif remaining_pct <= 33:
+            color = C_ORANGE
+        else:
+            color = C_DIM
+    except (ValueError, TypeError):
+        color = C_DIM
+
+    return f"{color}⏳ {remaining}{C_RESET}"
+
+
+# ============================================================================
 # Progress Bar Functions
 # ============================================================================
 
@@ -466,6 +529,7 @@ def build_statusline(
     duration: int | str,
     lines_added: int | str,
     lines_removed: int | str,
+    token_reset: str = "",
 ) -> str:
     """Build the status line string."""
     SEP = " │ "
@@ -498,10 +562,13 @@ def build_statusline(
         cost_fmt = format_cost(cost)
         parts.append(f"{C_YELLOW}💰 {cost_fmt}{C_RESET}")
 
-    # Duration (⏱️ icon)
+    # Duration (⏱️ icon) + Token reset (⏳ icon)
     if duration and str(duration) != "0" and duration != "null":
         duration_fmt = format_duration(duration)
-        parts.append(f"{C_DIM}⏱️ {duration_fmt}{C_RESET}")
+        duration_part = f"{C_DIM}⏱️ {duration_fmt}{C_RESET}"
+        if token_reset:
+            duration_part += f" {token_reset}"
+        parts.append(duration_part)
 
     # Lines changed (+/-)
     if lines_added and str(lines_added) != "0":
@@ -590,6 +657,10 @@ def main() -> None:
     else:
         cost = duration = lines_added = lines_removed = 0
 
+    # Calculate token reset remaining time
+    reset_remaining = get_token_reset_remaining(duration)
+    token_reset = format_token_reset(reset_remaining, duration)
+
     # Save project metadata to cache in background
     # Convert "85%" to 85, "" to 0
     memory_int = int(context_usage.rstrip("%")) if context_usage else 0
@@ -608,6 +679,7 @@ def main() -> None:
             duration,
             lines_added,
             lines_removed,
+            token_reset,
         ),
         end="",
     )
