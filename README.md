@@ -53,10 +53,12 @@ vibe-config/
 │   │   └── testing.md        # TDD workflow, 80% coverage
 │   └── skills/               # User-invokable skills (/skill-name)
 │       ├── commit/           # Create git commit with conventional format
+│       ├── commit-push/      # Create git commit and push to remote
 │       ├── context-init/     # Initialize and save project context
 │       ├── context-load/     # Load saved project context
 │       ├── docs-sync/        # Documentation sync and gap analysis
 │       ├── pr-create/        # Create PR with proper format
+│       ├── resolve-coderabbit/ # Resolve CodeRabbit review comments
 │       └── validate/         # Run lint, typecheck, tests
 │
 └── kiro/                     # Kiro settings -> ~/.kiro/
@@ -103,6 +105,7 @@ Automated quality checks and workflow enforcement:
 | SessionStart | vibemon.py | Initialize monitor status |
 | UserPromptSubmit | vibemon.py | Update monitor (thinking state) |
 | PreToolUse | vibemon.py | Update monitor (working state) |
+| PreCompact | vibemon.py | Update monitor (compacting state) |
 | Stop | vibemon.py | Update monitor (done state) |
 | Notification | vibemon.py | Update monitor (notification state) |
 
@@ -129,12 +132,14 @@ Note: Kiro's `vibemon.py` supports CLI commands: `--lock`, `--unlock`, `--status
 User-invokable via `/skill-name`:
 
 ```bash
-/commit        # Create git commit with conventional format
-/pr-create     # Create pull request with proper format
-/validate      # Run lint, typecheck, tests with auto-fix
-/docs-sync     # Analyze and update documentation
-/context-init  # Initialize and save project context
-/context-load  # Load saved project context
+/commit            # Create git commit with conventional format
+/commit-push       # Create git commit and push to remote
+/pr-create         # Create pull request with proper format
+/validate          # Run lint, typecheck, tests with auto-fix
+/docs-sync         # Analyze and update documentation
+/context-init      # Initialize and save project context
+/context-load      # Load saved project context
+/resolve-coderabbit  # Resolve CodeRabbit review comments
 ```
 
 ### Vibe Monitor
@@ -182,7 +187,7 @@ See [vibemon](https://github.com/nalbam/vibemon) for Desktop app and ESP32 firmw
 
 ## Configuration
 
-The `settings.json` file includes:
+### Claude Code Settings (`settings.json`)
 
 | Setting | Value | Description |
 |---------|-------|-------------|
@@ -196,7 +201,7 @@ The `settings.json` file includes:
 The custom status line shows real-time session information:
 
 ```
-📂 project │ ✨ feature/xxx * │ 🤖 Opus 4 │ 📥 12.5K 📤 3.2K │ 💰 $0.45 │ ⏱️ 2m30s │ +42 -15 │ 🧠 ━━━━━━╌╌╌╌ 62%
+📂 project │ ✨ feature/xxx * │ 🤖 Opus 4 │ 📥 12.5K 📤 3.2K │ 💰 $0.45 │ ⏱️ 2m30s ⏳ 17:00 │ +42 -15 │ 🧠 ━━━━━━╌╌╌╌ 62%
 ```
 
 | Icon | Description |
@@ -207,6 +212,7 @@ The custom status line shows real-time session information:
 | 📥/📤 | Input/output token usage |
 | 💰 | Session cost in USD |
 | ⏱️ | Session duration |
+| ⏳ | Token reset time in local clock (5h rolling window, color-coded) |
 | +/- | Lines added/removed |
 | 🧠 | Context window usage with progress bar (green/yellow/red) |
 
@@ -233,9 +239,37 @@ The status line shows branch-specific emojis:
 - `feature-dev` - Feature development assistance
 - `frontend-design` - Frontend design assistance
 - `code-review` - Code review tools
+- `coderabbit` - CodeRabbit AI code review
+- `commit-commands` - Git commit and PR workflows
 - `superpowers` - Advanced skills and workflows
 
-## Environment Variables
+## Configuration
+
+### VibeMon Config (`~/.vibemon/config.json`)
+
+```json
+{
+  "cache_path": "~/.vibemon/cache/statusline.json",
+  "auto_launch": false,
+  "http_urls": ["http://127.0.0.1:19280"],
+  "serial_port": "/dev/cu.usbmodem*",
+  "vibemon_url": "https://vibemon.example.com",
+  "vibemon_token": "your-token",
+  "token_reset_hours": 5
+}
+```
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `token_reset_hours` | `5` | Token reset window in hours. `0` to disable (Enterprise) |
+| `cache_path` | `~/.vibemon/cache/statusline.json` | Cache file path |
+| `auto_launch` | `false` | Auto-launch Desktop App |
+| `http_urls` | - | HTTP target URLs (array) |
+| `serial_port` | - | USB Serial port (wildcards supported) |
+| `vibemon_url` | - | VibeMon server URL |
+| `vibemon_token` | - | VibeMon auth token |
+
+### Environment Variables
 
 Create `~/.claude/.env.local` for local settings:
 
@@ -244,11 +278,14 @@ Create `~/.claude/.env.local` for local settings:
 # DEBUG=1
 
 # Vibe Monitor
-VIBEMON_CACHE_PATH=~/.claude/statusline-cache.json  # Cache file path
+VIBEMON_CACHE_PATH=~/.vibemon/cache/statusline.json  # Cache file path
 VIBEMON_AUTO_LAUNCH=0                        # Auto-launch Desktop App (0: disabled)
 VIBEMON_HTTP_URLS=http://127.0.0.1:19280,http://192.168.0.185  # HTTP URLs (comma-separated)
 VIBEMON_SERIAL_PORT=/dev/cu.usbmodem*        # USB Serial port (wildcards supported)
+VIBEMON_TOKEN_RESET_HOURS=5                  # Token reset window hours (0: disable)
 ```
+
+> **Note:** `~/.vibemon/config.json` settings take precedence. Environment variables are used as fallback.
 
 ### Vibe Monitor CLI
 

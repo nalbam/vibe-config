@@ -417,58 +417,60 @@ def format_cost(cost: float | str | None) -> str:
 # Token Reset Functions
 # ============================================================================
 
-def get_token_reset_remaining(duration_ms: int | float | str | None) -> str:
-    """Calculate remaining time until token usage resets.
+def get_token_reset_info(duration_ms: int | float | str | None) -> tuple[int, str]:
+    """Calculate token reset remaining time and local reset clock time.
 
-    Based on the 5-hour rolling window that starts with the first message.
-    Returns formatted remaining time, or "" if disabled (Enterprise).
+    Uses session duration to estimate the 5-hour rolling window position,
+    then converts to an actual local clock time for display.
+
+    Returns:
+        (remaining_ms, reset_time_str) e.g. (180000, "17:00")
+        (0, "") if disabled or unavailable
     """
     if TOKEN_RESET_MS <= 0:
-        return ""
+        return (0, "")
 
     if duration_ms is None or duration_ms == "null" or duration_ms == 0:
-        return ""
+        return (0, "")
 
     try:
         elapsed_ms = int(duration_ms)
         remaining_ms = TOKEN_RESET_MS - (elapsed_ms % TOKEN_RESET_MS)
+        remaining_seconds = remaining_ms // 1000
 
-        # If remaining equals full window, session just started or just reset
-        if remaining_ms == TOKEN_RESET_MS:
-            remaining_ms = TOKEN_RESET_MS
+        # Calculate actual local reset time using current clock
+        reset_timestamp = time.time() + remaining_seconds
+        reset_local = time.localtime(reset_timestamp)
+        reset_time_str = time.strftime("%H:%M", reset_local)
 
-        total_seconds = remaining_ms // 1000
-        hours, remainder = divmod(total_seconds, 3600)
-        minutes, _ = divmod(remainder, 60)
-
-        if hours > 0:
-            return f"{hours}h{minutes:02d}m"
-        return f"{minutes}m"
+        return (remaining_ms, reset_time_str)
     except (ValueError, TypeError):
+        return (0, "")
+
+
+def format_token_reset(remaining_ms: int, reset_time_str: str) -> str:
+    """Format token reset display with color based on urgency.
+
+    Shows the local clock time when tokens reset (e.g. "⏳ 17:00").
+    Color indicates urgency: dim > 33%, orange 10-33%, red < 10%.
+    """
+    if not reset_time_str:
         return ""
 
-
-def format_token_reset(remaining: str, duration_ms: int | float | str | None) -> str:
-    """Format token reset display with color based on urgency."""
-    if not remaining:
-        return ""
-
-    try:
-        elapsed_ms = int(duration_ms)
-        remaining_ms = TOKEN_RESET_MS - (elapsed_ms % TOKEN_RESET_MS)
+    # Color based on remaining percentage of window
+    if TOKEN_RESET_MS > 0:
         remaining_pct = remaining_ms * 100 // TOKEN_RESET_MS
+    else:
+        remaining_pct = 100
 
-        # Color: green > 33%, yellow 10-33%, red < 10%
-        if remaining_pct <= 10:
-            color = C_RED
-        elif remaining_pct <= 33:
-            color = C_ORANGE
-        else:
-            color = C_DIM
-    except (ValueError, TypeError):
+    if remaining_pct <= 10:
+        color = C_RED
+    elif remaining_pct <= 33:
+        color = C_ORANGE
+    else:
         color = C_DIM
 
-    return f"{color}⏳ {remaining}{C_RESET}"
+    return f"{color}⏳ {reset_time_str}{C_RESET}"
 
 
 # ============================================================================
@@ -657,9 +659,9 @@ def main() -> None:
     else:
         cost = duration = lines_added = lines_removed = 0
 
-    # Calculate token reset remaining time
-    reset_remaining = get_token_reset_remaining(duration)
-    token_reset = format_token_reset(reset_remaining, duration)
+    # Calculate token reset time (local clock)
+    remaining_ms, reset_time_str = get_token_reset_info(duration)
+    token_reset = format_token_reset(remaining_ms, reset_time_str)
 
     # Save project metadata to cache in background
     # Convert "85%" to 85, "" to 0

@@ -40,7 +40,7 @@ The `sync.sh` script:
 | `hooks/vibemon.py` | VibeMon status updates |
 | `rules/*.md` | Always-loaded guidelines (language, security, testing) |
 | `skills/*/SKILL.md` | User-invokable skills via `/skill-name` |
-| `statusline.py` | Custom status line showing usage, cost, context |
+| `statusline.py` | Custom status line showing usage, cost, context, token reset timer |
 
 ### Hook Events
 
