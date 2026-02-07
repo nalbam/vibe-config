@@ -49,6 +49,7 @@ The `sync.sh` script:
 | SessionStart | vibemon.py | Initialize status |
 | UserPromptSubmit | vibemon.py | Update to thinking state |
 | PreToolUse | vibemon.py | Update to working state |
+| PreCompact | vibemon.py | Update to compacting state |
 | Stop | vibemon.py | Done state |
 | Notification | vibemon.py | Alert user for input |
 

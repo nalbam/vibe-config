@@ -122,6 +122,7 @@ Kiro IDE/CLI uses different hook events:
 | `fileCreated` | working | File created |
 | `fileEdited` | working | File edited |
 | `fileDeleted` | working | File deleted |
+| `preCompact` | packing | Context compaction in progress |
 | `agentStop` | done | Agent stopped |
 | `stop` | done | Session stopped |
 
@@ -159,6 +160,7 @@ Display Claude Code and Kiro status in real-time. Supports Claude Code, Kiro IDE
 | `thinking` | UserPromptSubmit | Processing user input |
 | `planning` | UserPromptSubmit (plan mode) | Planning mode active |
 | `working` | PreToolUse | Executing tools |
+| `packing` | PreCompact | Context compaction in progress |
 | `done` | Stop | Task completed |
 | `notification` | Notification | Waiting for user input |
 
@@ -243,8 +245,6 @@ The status line shows branch-specific emojis:
 - `commit-commands` - Git commit and PR workflows
 - `superpowers` - Advanced skills and workflows
 
-## Configuration
-
 ### VibeMon Config (`~/.vibemon/config.json`)
 
 ```json
@@ -283,6 +283,10 @@ VIBEMON_AUTO_LAUNCH=0                        # Auto-launch Desktop App (0: disab
 VIBEMON_HTTP_URLS=http://127.0.0.1:19280,http://192.168.0.185  # HTTP URLs (comma-separated)
 VIBEMON_SERIAL_PORT=/dev/cu.usbmodem*        # USB Serial port (wildcards supported)
 VIBEMON_TOKEN_RESET_HOURS=5                  # Token reset window hours (0: disable)
+
+# VibeMon API
+# VIBEMON_URL=https://vibemon.example.com   # VibeMon server URL
+# VIBEMON_TOKEN=your-token                  # VibeMon auth token
 ```
 
 > **Note:** `~/.vibemon/config.json` settings take precedence. Environment variables are used as fallback.
