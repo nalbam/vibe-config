@@ -86,6 +86,7 @@
       "Bash(yarn:*)",
       "Bash(yq:*)",
       "Bash(zip:*)",
+      "Skill(code-audit)",
       "Skill(code-review:code-review)",
       "Skill(coderabbit:code-review)",
       "Skill(coderabbit:review)",
