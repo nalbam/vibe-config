@@ -10,6 +10,12 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 Analyze entire codebase and documentation, find gaps, update docs.
 
+## Philosophy
+
+- **문서는 코드의 진실을 반영해야 한다** — 코드와 다른 문서는 문서가 없는 것보다 해롭다
+- **빠진 것보다 틀린 것이 더 위험하다** — 잘못된 문서는 개발자를 잘못된 방향으로 이끈다
+- **실제 동작을 확인한다** — 코드를 읽고, 문서와 대조하고, 차이를 발견한다
+
 ## Rules
 
 - **Skip temporary/generated directories** - apply exclude patterns before scanning
@@ -52,29 +58,47 @@ These are auto-generated files, not source code - do not document them.
 - Check structure and index
 - Build docs inventory
 
-### 3. Compare & Report
+### 3. Verify Accuracy — 정확성 검증
+
+**CRITICAL: 빠진 문서를 찾기 전에, 기존 문서가 정확한지 확인한다.**
+
+For each documented item:
+1. **Find the corresponding code** — does the documented function/API/config actually exist?
+2. **Compare behavior** — does the code do what the docs say?
+3. **Check parameters** — are function signatures, API parameters, config options accurate?
+4. **Verify examples** — do documented examples actually work with current code?
+
+**Ask "Why is this wrong?"** for each mismatch:
+- Was the code changed without updating docs?
+- Was the doc written based on planned (not actual) behavior?
+- Has a dependency changed the behavior?
+
+### 4. Compare & Report
 ```
 ## Gap Report
+
+Inaccurate (PRIORITY — fix first):
+- README.md says MAX_RETRY=3, code uses MAX_RETRY=5
+- API docs show POST /api/users, code expects PUT /api/users
 
 Undocumented:
 - function parseConfig() in src/config.ts
 
 Orphaned (remove from docs):
-- /api/legacy in docs/API.md
-
-Mismatches:
-- MAX_RETRY: docs=3, code=5
+- /api/legacy in docs/API.md (endpoint deleted)
 ```
 
-### 4. Update
-- Fix existing documentation
+### 5. Update
+- Fix inaccurate documentation first (highest priority)
 - Remove orphaned content
+- Add missing documentation
 - Do NOT create new files
 
-### 5. Verify
+### 6. Verify
 - Examples work
 - Links valid
 - No duplicates
+- Documented behavior matches actual code behavior
 
 ## Structure
 
@@ -93,3 +117,11 @@ project/
 - Working code examples
 - No duplicate content (link instead)
 - Keep docs concise
+
+## Anti-Patterns
+
+- Do NOT assume documentation is correct — verify against code
+- Do NOT add documentation for trivial/obvious code
+- Do NOT create new doc files unless explicitly requested
+- Do NOT document implementation details that change frequently
+- Do NOT copy code into documentation — reference it

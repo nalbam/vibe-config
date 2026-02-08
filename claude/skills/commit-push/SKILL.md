@@ -8,124 +8,74 @@ allowed-tools: Read, Bash, Grep, Glob
 
 **IMPORTANT: 모든 설명과 요약은 한국어로 작성하세요. 단, 코드 예시와 명령어는 원문 그대로 유지합니다.**
 
+## Philosophy
+
+- **푸시는 되돌리기 어렵다** — 커밋보다 더 신중해야 한다
+- **공유 브랜치에 영향을 준다** — 내 변경이 팀 전체에 전파된다
+- **푸시 전에 한 번 더 확인한다** — 커밋 후 push 전 최종 점검
+
 ## Workflow
 
-### 0. Run Validation First
-Before committing, run `/validate` to ensure all checks pass:
-- Lint
-- Typecheck
-- Tests
+### Phase 1: Commit — `/commit` 워크플로우 수행
 
-**If validation fails, fix all issues before proceeding.**
+**`/commit` 스킬의 전체 워크플로우를 따른다:**
 
-### 1. Analyze Changes
-```bash
-# Check current status (never use -uall flag)
-git status
+1. **Validation** — lint, typecheck, tests 통과 확인
+2. **Gather Changes** — `git status`, `git diff` 확인
+3. **Understand Changes** — 변경사항 숙고, "왜?"를 묻고, 영향 파악
+4. **Security Review** — secrets, debug code 확인
+5. **Stage & Commit** — 파일 스테이징, conventional commit 메시지 작성
+6. **Verify Commit** — 커밋 결과 확인
 
-# View staged and unstaged changes
-git diff
-git diff --cached
-
-# View recent commits for message style reference
-git log --oneline -10
+**Commit Message Format:**
 ```
-
-### 2. Review Changes
-Before committing:
-- [ ] No secrets (API keys, passwords, tokens)
-- [ ] No debug code (console.log, print statements)
-- [ ] No unintended files (.env, node_modules, etc.)
-- [ ] Changes are related and focused
-
-### 3. Stage Files
-```bash
-# Stage specific files (preferred)
-git add path/to/file1 path/to/file2
-
-# Or stage all changes (use with caution)
-git add -A
-```
-
-**Avoid staging:**
-- `.env`, `credentials.json`, secrets
-- Large binaries or generated files
-- Unrelated changes
-
-### 4. Create Commit
-```bash
-git commit -m "$(cat <<'EOF'
 <type>: <subject>
 
 <optional body explaining why>
-EOF
-)"
 ```
 
-### 5. Push to Remote
-```bash
-# Check current branch
-git branch --show-current
+Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`, `ci`
 
+### Phase 2: Pre-Push Deliberation — 푸시 전 숙고
+
+**CRITICAL: 커밋 후 바로 푸시하지 않는다. 한 번 더 생각한다.**
+
+```bash
+# Review what will be pushed
+git log origin/$(git branch --show-current)..HEAD --oneline 2>/dev/null || git log --oneline -3
+
+# Verify branch
+git branch --show-current
+```
+
+**Push deliberation checklist:**
+- [ ] Correct branch? (main/master에 직접 push가 의도된 것인지 확인)
+- [ ] All commits are intentional? (실수로 포함된 커밋 없는지)
+- [ ] No force push needed? (force push는 명시적 요청 시에만)
+- [ ] CI/CD will be triggered — are changes ready for that?
+
+### Phase 3: Push
+
+```bash
 # Push to remote (set upstream if new branch)
 git push -u origin $(git branch --show-current)
 ```
 
-### 6. Verify
+### Phase 4: Verify
+
 ```bash
 git status
 git log --oneline -3
 ```
 
-## Commit Message Format
+## Pre-Push Safety Rules
 
-```
-<type>: <subject>
-
-<optional body>
-```
-
-**Types:**
-| Type | Description |
-|------|-------------|
-| `feat` | New feature |
-| `fix` | Bug fix |
-| `docs` | Documentation only |
-| `refactor` | Code refactoring (no behavior change) |
-| `test` | Adding or updating tests |
-| `chore` | Maintenance, dependencies |
-| `perf` | Performance improvement |
-| `ci` | CI/CD changes |
-
-**Subject Rules:**
-- Use imperative mood: "Add feature" not "Added feature"
-- No period at the end
-- Max 50 characters
-- Focus on "what" and "why", not "how"
-
-**Examples:**
-```
-feat: add user authentication with OAuth2
-fix: handle null response from payment API
-refactor: simplify date formatting logic
-docs: update API documentation for v2 endpoints
-test: add unit tests for user service
-chore: update dependencies to latest versions
-```
-
-## Pre-Commit Checklist
-
-- [ ] All tests pass
-- [ ] Lint checks pass
-- [ ] No sensitive data exposed
-- [ ] Commit is atomic (single purpose)
-- [ ] Message clearly describes changes
-
-## Pre-Push Checklist
-
-- [ ] Commit is verified (git log)
-- [ ] Pushing to correct branch
-- [ ] No force push to shared branches (main, master)
+| Rule | Reason |
+|------|--------|
+| No force push to main/master | Shared history destruction |
+| No push with failing tests | Breaks CI for entire team |
+| No push of secrets | Once pushed, consider compromised |
+| Verify target branch | Wrong branch push is hard to undo |
 
 ## Rules
 
@@ -136,9 +86,11 @@ chore: update dependencies to latest versions
 
 ## Anti-Patterns
 
+- Do NOT push without understanding what will be pushed
+- Do NOT push immediately after commit without reviewing
 - Do NOT commit multiple unrelated changes together
 - Do NOT use vague messages like "fix", "update", "WIP"
 - Do NOT commit secrets or credentials
 - Do NOT skip pre-commit hooks (--no-verify)
-- Do NOT amend commits already pushed to shared branches
 - Do NOT force push (--force) unless explicitly requested
+- Do NOT amend commits already pushed to shared branches

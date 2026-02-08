@@ -10,6 +10,12 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Task
 
 Fetch CodeRabbit inline review comments from a PR, technically evaluate each one, fix valid issues, and resolve completed threads.
 
+## Philosophy
+
+- **리뷰 제안을 맹목적으로 수용하지 않는다** — 각 제안을 코드베이스의 현실과 대조하여 기술적으로 평가한다
+- **YAGNI를 존중한다** — 현재 필요하지 않은 추상화나 복잡성을 거부할 용기를 가진다
+- **근본원인을 고친다** — 제안이 증상을 가리키면, 그 아래의 진짜 문제를 찾는다
+
 ## Rules
 
 - Read files completely before making changes

@@ -8,6 +8,12 @@ allowed-tools: Read, Bash, Grep, Glob
 
 **IMPORTANT: 모든 설명과 요약은 한국어로 작성하세요. 단, 코드 예시와 명령어는 원문 그대로 유지합니다.**
 
+## Philosophy
+
+- **변경사항을 이해한 후 커밋한다** — diff를 보는 것이 아니라, 변경의 목적과 영향을 파악한다
+- **커밋 메시지는 "왜"를 담는다** — 무엇을 바꿨는지가 아니라 왜 바꿨는지를 설명한다
+- **하나의 커밋, 하나의 목적** — 관련 없는 변경은 분리한다
+
 ## Workflow
 
 ### 0. Run Validation First
@@ -18,7 +24,7 @@ Before committing, run `/validate` to ensure all checks pass:
 
 **If validation fails, fix all issues before proceeding.**
 
-### 1. Analyze Changes
+### 1. Gather Changes
 ```bash
 # Check current status (never use -uall flag)
 git status
@@ -31,14 +37,30 @@ git diff --cached
 git log --oneline -10
 ```
 
-### 2. Review Changes
-Before committing:
+### 2. Understand Changes — 변경사항 숙고
+
+**CRITICAL: diff를 읽는 것이 아니라, 변경의 의미를 이해한다.**
+
+For each changed file:
+1. **Read the changed file** — understand the full context, not just the diff
+2. **Ask "Why?"** — why was this change needed? What problem does it solve?
+3. **Assess impact** — what other code depends on this? Could this break anything?
+4. **Verify correctness** — is the change actually correct? Are edge cases handled?
+
+**Deliberation checklist:**
+- [ ] I understand WHY each change was made
+- [ ] Changes are logically related (single purpose)
+- [ ] No unintended side effects
+- [ ] The change addresses the root cause, not a symptom
+
+### 3. Security Review
+Before staging:
 - [ ] No secrets (API keys, passwords, tokens)
 - [ ] No debug code (console.log, print statements)
 - [ ] No unintended files (.env, node_modules, etc.)
-- [ ] Changes are related and focused
+- [ ] No sensitive data in error messages or comments
 
-### 3. Stage Files
+### 4. Stage Files
 ```bash
 # Stage specific files (preferred)
 git add path/to/file1 path/to/file2
@@ -52,7 +74,13 @@ git add -A
 - Large binaries or generated files
 - Unrelated changes
 
-### 4. Create Commit
+### 5. Craft Commit Message
+
+**Before writing the message, articulate:**
+1. What type of change is this? (feat/fix/refactor/...)
+2. What is the core purpose in one sentence?
+3. Why was this change necessary? (for the body)
+
 ```bash
 git commit -m "$(cat <<'EOF'
 <type>: <subject>
@@ -62,7 +90,7 @@ EOF
 )"
 ```
 
-### 5. Verify Commit
+### 6. Verify Commit
 ```bash
 git status
 git log --oneline -3
@@ -104,14 +132,6 @@ test: add unit tests for user service
 chore: update dependencies to latest versions
 ```
 
-## Pre-Commit Checklist
-
-- [ ] All tests pass
-- [ ] Lint checks pass
-- [ ] No sensitive data exposed
-- [ ] Commit is atomic (single purpose)
-- [ ] Message clearly describes changes
-
 ## Rules
 
 - Only include actual work done in the message
@@ -120,6 +140,7 @@ chore: update dependencies to latest versions
 
 ## Anti-Patterns
 
+- Do NOT commit without understanding what changed and why
 - Do NOT commit multiple unrelated changes together
 - Do NOT use vague messages like "fix", "update", "WIP"
 - Do NOT commit secrets or credentials

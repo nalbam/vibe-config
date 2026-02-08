@@ -10,6 +10,12 @@ allowed-tools: Read, Write, Bash, Grep, Glob, Task
 
 프로젝트 문서를 분석하고 컨텍스트를 `./.context.md`에 저장합니다.
 
+## Philosophy
+
+- **표면이 아닌 본질을 파악한다** — 파일 목록이 아니라, 프로젝트가 어떻게 동작하는지 이해한다
+- **코드를 직접 읽고 확인한다** — README만 믿지 않고, 실제 코드와 대조한다
+- **AI가 효과적으로 작업할 수 있는 맥락을 제공한다** — 핵심 패턴, 함정, 관례를 기록한다
+
 ## Workflow
 
 ### 1. Check Existing Context
@@ -45,11 +51,18 @@ ls -d */ 2>/dev/null
 **Use Task tool with Explore agent for large codebases:**
 ```
 Explore the codebase structure and identify:
-- Main entry points
-- Key modules and their purposes
-- Coding patterns and conventions
-- Test structure
+- Main entry points and how they connect
+- Key modules, their purposes, and their dependencies
+- Coding patterns and conventions (actually used, not just documented)
+- Data flow: how data enters, transforms, and exits the system
+- Test structure and coverage patterns
+- Gotchas: non-obvious behavior, workarounds, technical debt
 ```
+
+**CRITICAL: README/docs와 실제 코드를 대조한다.**
+- README에 적힌 명령어가 실제로 동작하는가?
+- 문서화된 아키텍처가 코드와 일치하는가?
+- 불일치가 있으면 코드를 기준으로 기록하고, 불일치를 Notes에 기재한다.
 
 ### 4. Gather Information
 

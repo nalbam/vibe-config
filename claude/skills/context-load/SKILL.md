@@ -107,6 +107,7 @@ Run `/context-init` again when:
 
 ## Anti-Patterns
 
-- Do NOT assume context is always up-to-date
-- Do NOT rely only on context for critical decisions
+- Do NOT assume context is always up-to-date — always verify against actual code
+- Do NOT rely only on context for critical decisions — read the real files
 - Do NOT skip reading actual code when making changes
+- Do NOT trust documented commands without verifying they still work
