@@ -181,7 +181,7 @@ def get_git_info(directory: str) -> str:
         # --porcelain=v1 --branch gives: "## branch...tracking" as first line
         # followed by changed files (if any)
         result = subprocess.run(
-            ["git", "-C", directory, "status", "--porcelain=v1", "--branch"],
+            ["git", "--no-optional-locks", "-C", directory, "status", "--porcelain=v1", "--branch"],
             capture_output=True,
             text=True,
             timeout=2
