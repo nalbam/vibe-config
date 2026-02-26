@@ -72,9 +72,37 @@ ls -d */ 2>/dev/null
 
 ### Phase 2: Deep Analysis — 병렬 심층 분석
 
-**Use Task tool to spawn parallel Explore agents** for each audit dimension.
+**Team 모드를 사용하여 4개의 전문 에이전트를 병렬로 실행합니다.**
 
-Launch these analyses concurrently:
+#### Team 모드 사용 (권장)
+
+`TeamCreate` 도구가 사용 가능한 경우 Team 모드로 실행합니다:
+
+```
+1. TeamCreate로 "code-audit" 팀 생성
+2. TaskCreate로 4개 감사 태스크 생성
+3. Task 도구로 각 에이전트를 team_name="code-audit"으로 스폰
+4. 모든 에이전트가 완료될 때까지 대기 (SendMessage 알림)
+5. TeamDelete로 팀 정리
+```
+
+**Team 모드 스폰 예시:**
+```
+Task(
+  subagent_type="Explore",
+  team_name="code-audit",
+  name="security-auditor",
+  prompt="[Security Audit 프롬프트]"
+)
+```
+
+#### Fallback: Task 도구 직접 사용
+
+`TeamCreate`가 없는 경우 Task 도구로 병렬 에이전트를 직접 스폰합니다.
+
+---
+
+아래 4가지 분석을 동시에 실행합니다:
 
 #### Agent 1: Security Audit
 ```
@@ -136,6 +164,14 @@ Analyze the testing strategy and reliability:
 8. Build/CI reliability — configuration issues, missing steps
 
 Report specific untested functions/paths and their risk level.
+```
+
+#### Team 종료
+
+Team 모드를 사용한 경우, 모든 에이전트 완료 후 팀을 정리합니다:
+```
+1. 각 에이전트에 SendMessage(type="shutdown_request") 전송
+2. 모든 shutdown_response 확인 후 TeamDelete 실행
 ```
 
 ### Phase 3: Root Cause Analysis — 근본원인 추적
