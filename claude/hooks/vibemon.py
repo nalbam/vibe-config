@@ -177,8 +177,12 @@ EVENT_STATE_MAP: dict[str, str] = {
     "SessionStart": "start",
     "UserPromptSubmit": "thinking",
     "PreToolUse": "working",
+    "PostToolUse": "working",
     "PreCompact": "packing",
     "Notification": "notification",
+    "SubagentStart": "working",
+    "SubagentStop": "working",
+    "SessionEnd": "done",
     "Stop": "done",
 }
 
