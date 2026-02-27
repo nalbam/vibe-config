@@ -623,6 +623,12 @@ def save_cache_background(project: str, model: str, memory: int) -> None:
 
 def main() -> None:
     """Main entry point."""
+    # Disable statusline in team/subagent mode to avoid conflicts
+    # CLAUDE_AGENT_ID is set by Claude Code when running as a team agent
+    # STATUSLINE_DISABLED=1 allows manual override
+    if os.environ.get("CLAUDE_AGENT_ID") or os.environ.get("STATUSLINE_DISABLED") == "1":
+        return
+
     input_raw = read_input()
 
     # Parse JSON once and reuse
