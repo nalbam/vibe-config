@@ -417,11 +417,40 @@ def format_cost(cost: float | str | None) -> str:
 # Token Reset Functions
 # ============================================================================
 
+def get_token_window_path() -> str:
+    """Get the token window state file path."""
+    cache_dir = os.path.dirname(get_cache_path())
+    return os.path.join(cache_dir, "token_window.json")
+
+
+def load_window_start() -> float | None:
+    """Load the token window start time from persistent file."""
+    try:
+        with open(get_token_window_path()) as f:
+            data = json.load(f)
+            return data.get("window_start")
+    except (FileNotFoundError, json.JSONDecodeError, IOError):
+        return None
+
+
+def save_window_start(window_start: float) -> None:
+    """Save the token window start time to persistent file (atomic write)."""
+    window_file = get_token_window_path()
+    try:
+        os.makedirs(os.path.dirname(window_file), exist_ok=True)
+        tmpfile = f"{window_file}.tmp.{os.getpid()}"
+        with open(tmpfile, "w") as f:
+            json.dump({"window_start": window_start}, f)
+        os.replace(tmpfile, window_file)
+    except (IOError, OSError):
+        pass
+
+
 def get_token_reset_info(duration_ms: int | float | str | None) -> tuple[int, str]:
     """Calculate token reset remaining time and local reset clock time.
 
-    Uses session duration to estimate the 5-hour rolling window position,
-    then converts to an actual local clock time for display.
+    Tracks the 5-hour token window using a persisted start time,
+    so the reset countdown stays accurate across multiple sessions.
 
     Returns:
         (remaining_ms, reset_time_str) e.g. (180000, "17:00")
@@ -434,12 +463,27 @@ def get_token_reset_info(duration_ms: int | float | str | None) -> tuple[int, st
         return (0, "")
 
     try:
-        elapsed_ms = int(duration_ms)
-        remaining_ms = TOKEN_RESET_MS - (elapsed_ms % TOKEN_RESET_MS)
-        remaining_seconds = remaining_ms // 1000
+        now = time.time()
+        token_reset_seconds = TOKEN_RESET_MS // 1000
 
-        # Calculate actual local reset time using current clock
-        reset_timestamp = time.time() + remaining_seconds
+        # Load persisted window start (survives across sessions)
+        window_start = load_window_start()
+
+        # If window expired or doesn't exist, start a new one
+        if window_start is None or (now - window_start) >= token_reset_seconds:
+            window_start = now
+            save_window_start(window_start)
+
+        # Calculate remaining time in window
+        remaining_seconds = int(token_reset_seconds - (now - window_start))
+
+        if remaining_seconds <= 0:
+            return (0, "")
+
+        remaining_ms = remaining_seconds * 1000
+
+        # Calculate actual local reset time
+        reset_timestamp = now + remaining_seconds
         reset_local = time.localtime(reset_timestamp)
         reset_time_str = time.strftime("%H:%M", reset_local)
 
