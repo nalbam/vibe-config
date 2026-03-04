@@ -51,7 +51,6 @@ def load_config() -> None:
 
 load_config()
 
-DEBUG = os.environ.get("DEBUG", "0") == "1"
 VIBE_MONITOR_MAX_PROJECTS = 10
 
 # Token reset window: 5h for Pro/Max, 0 to disable (Enterprise)
@@ -76,16 +75,6 @@ def parse_json(data: str) -> dict[str, Any]:
         return json.loads(data)
     except (json.JSONDecodeError, TypeError):
         return {}
-
-def get_nested_value(obj: dict[str, Any], field: str, default: Any = "") -> Any:
-    """Get nested value from dictionary using dot notation."""
-    keys = field.strip(".").split(".")
-    for key in keys:
-        if isinstance(obj, dict):
-            obj = obj.get(key, default)
-        else:
-            return default
-    return obj if obj is not None else default
 
 # ============================================================================
 # Git Functions
@@ -352,7 +341,6 @@ def save_to_cache(project: str, model: str, memory: int) -> None:
 # ============================================================================
 
 C_RESET = "\033[0m"
-C_BOLD = "\033[1m"
 C_DIM = "\033[2m"
 C_CYAN = "\033[36m"
 C_GREEN = "\033[32m"
