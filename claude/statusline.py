@@ -482,9 +482,13 @@ def get_token_reset_info(duration_ms: int | float | str | None) -> tuple[int, st
         # Load persisted window start (survives across sessions)
         window_start = load_window_start()
 
+        # Snap to the hour floor: Anthropic resets on the hour boundary
+        if window_start is not None:
+            window_start = window_start - (window_start % 3600)
+
         # If window expired or doesn't exist, start a new one
         if window_start is None or (now - window_start) >= token_reset_seconds:
-            window_start = now
+            window_start = now - (now % 3600)
             save_window_start(window_start)
 
         # Calculate remaining time in window
