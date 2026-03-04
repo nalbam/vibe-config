@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
-VibeMon Hook for Claude Code
+VibeMon Hook for Kiro IDE
 Desktop App + ESP32 (USB Serial / HTTP)
-Note: Model and Memory are read from statusline.py's cache file
 """
 
 from __future__ import annotations
