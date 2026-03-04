@@ -508,11 +508,21 @@ def get_token_reset_info(duration_ms: int | float | str | None) -> tuple[int, st
 def format_token_reset(remaining_ms: int, reset_time_str: str) -> str:
     """Format token reset display with color based on urgency.
 
-    Shows the local clock time when tokens reset (e.g. "⏳ 17:00").
+    Shows remaining time until token reset (e.g. "⏳ 4h35m").
     Color indicates urgency: dim > 33%, orange 10-33%, red < 10%.
     """
-    if not reset_time_str:
+    if remaining_ms <= 0:
         return ""
+
+    # Format remaining time as hours/minutes
+    total_minutes = remaining_ms // 60000
+    hours = total_minutes // 60
+    minutes = total_minutes % 60
+
+    if hours > 0:
+        remaining_display = f"{hours}h{minutes}m"
+    else:
+        remaining_display = f"{minutes}m"
 
     # Color based on remaining percentage of window
     if TOKEN_RESET_MS > 0:
@@ -527,7 +537,7 @@ def format_token_reset(remaining_ms: int, reset_time_str: str) -> str:
     else:
         color = C_DIM
 
-    return f"{color}⏳ {reset_time_str}{C_RESET}"
+    return f"{color}⏳ {remaining_display}{C_RESET}"
 
 
 # ============================================================================
