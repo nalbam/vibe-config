@@ -19,6 +19,7 @@ from typing import Any
 # Configuration Loading
 # ============================================================================
 
+
 def load_config() -> None:
     """Load configuration from config.json and set as environment variables."""
     config_file = Path.home() / ".vibemon" / "config.json"
@@ -36,7 +37,10 @@ def load_config() -> None:
         "debug": ("DEBUG", lambda v: "1" if v else "0"),
         "cache_path": ("VIBEMON_CACHE_PATH", str),
         "auto_launch": ("VIBEMON_AUTO_LAUNCH", lambda v: "1" if v else "0"),
-        "http_urls": ("VIBEMON_HTTP_URLS", lambda v: ",".join(v) if isinstance(v, list) else str(v)),
+        "http_urls": (
+            "VIBEMON_HTTP_URLS",
+            lambda v: ",".join(v) if isinstance(v, list) else str(v),
+        ),
         "serial_port": ("VIBEMON_SERIAL_PORT", str),
         "vibemon_url": ("VIBEMON_URL", str),
         "vibemon_token": ("VIBEMON_TOKEN", str),
@@ -48,6 +52,7 @@ def load_config() -> None:
             value = converter(config[config_key])
             if value:
                 os.environ.setdefault(env_key, value)
+
 
 load_config()
 
@@ -65,9 +70,11 @@ LOCK_RETRY_INTERVAL = 0.05
 # Utility Functions
 # ============================================================================
 
+
 def read_input() -> str:
     """Read input from stdin."""
     return sys.stdin.read()
+
 
 def parse_json(data: str) -> dict[str, Any]:
     """Parse JSON string to dictionary."""
@@ -75,6 +82,7 @@ def parse_json(data: str) -> dict[str, Any]:
         return json.loads(data)
     except (json.JSONDecodeError, TypeError):
         return {}
+
 
 # ============================================================================
 # Git Functions
@@ -102,6 +110,7 @@ BRANCH_EMOJIS = {
     "exp": "🧪",
 }
 
+
 def get_branch_emoji(branch: str) -> str:
     """Get emoji for branch based on name or prefix."""
     if not branch:
@@ -122,6 +131,7 @@ def get_branch_emoji(branch: str) -> str:
     # Default emoji
     return "🌿"
 
+
 def get_git_root(directory: str) -> str | None:
     """Get git repository root directory."""
     if not directory:
@@ -131,7 +141,7 @@ def get_git_root(directory: str) -> str | None:
             ["git", "-C", directory, "rev-parse", "--show-toplevel"],
             capture_output=True,
             text=True,
-            timeout=2
+            timeout=2,
         )
         if result.returncode == 0:
             return result.stdout.strip()
@@ -170,10 +180,18 @@ def get_git_info(directory: str) -> str:
         # --porcelain=v1 --branch gives: "## branch...tracking" as first line
         # followed by changed files (if any)
         result = subprocess.run(
-            ["git", "--no-optional-locks", "-C", directory, "status", "--porcelain=v1", "--branch"],
+            [
+                "git",
+                "--no-optional-locks",
+                "-C",
+                directory,
+                "status",
+                "--porcelain=v1",
+                "--branch",
+            ],
             capture_output=True,
             text=True,
-            timeout=2
+            timeout=2,
         )
         if result.returncode != 0:
             return ""
@@ -205,9 +223,11 @@ def get_git_info(directory: str) -> str:
     except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
         return ""
 
+
 # ============================================================================
 # Context Window Functions
 # ============================================================================
+
 
 def get_context_usage(data: dict[str, Any]) -> str:
     """Calculate context window usage percentage.
@@ -252,14 +272,19 @@ def get_context_usage(data: dict[str, Any]) -> str:
 
     return ""
 
+
 # ============================================================================
 # VibeMon Cache Functions
 # ============================================================================
 
+
 def get_cache_path() -> str:
     """Get the cache file path."""
-    cache_path = os.environ.get("VIBEMON_CACHE_PATH", "~/.vibemon/cache/statusline.json")
+    cache_path = os.environ.get(
+        "VIBEMON_CACHE_PATH", "~/.vibemon/cache/statusline.json"
+    )
     return os.path.expanduser(cache_path)
+
 
 def save_to_cache(project: str, model: str, memory: int) -> None:
     """Save project metadata to cache file.
@@ -309,16 +334,12 @@ def save_to_cache(project: str, model: str, memory: int) -> None:
             sorted_items = sorted(
                 cache.items(),
                 key=lambda x: x[1].get("ts", 0) if isinstance(x[1], dict) else 0,
-                reverse=True
+                reverse=True,
             )
-            cache = dict(sorted_items[:VIBE_MONITOR_MAX_PROJECTS - 1])
+            cache = dict(sorted_items[: VIBE_MONITOR_MAX_PROJECTS - 1])
 
         # Update cache with new project data
-        cache[project] = {
-            "model": model,
-            "memory": memory,
-            "ts": timestamp
-        }
+        cache[project] = {"model": model, "memory": memory, "ts": timestamp}
 
         # Atomic write: write to temp file, then rename
         tmpfile = f"{cache_path}.tmp.{os.getpid()}"
@@ -335,6 +356,7 @@ def save_to_cache(project: str, model: str, memory: int) -> None:
                 os.close(lock_fd)
             except OSError:
                 pass
+
 
 # ============================================================================
 # ANSI Colors
@@ -353,6 +375,7 @@ C_ORANGE = "\033[38;5;208m"
 # ============================================================================
 # Formatting Functions
 # ============================================================================
+
 
 def format_number(num: int | float | str | None) -> str:
     """Format number with K/M suffix."""
@@ -401,9 +424,11 @@ def format_cost(cost: float | str | None) -> str:
     except (ValueError, TypeError):
         return "$0.00"
 
+
 # ============================================================================
 # Token Reset Functions
 # ============================================================================
+
 
 def get_token_window_path() -> str:
     """Get the token window state file path."""
@@ -509,6 +534,7 @@ def format_token_reset(remaining_ms: int, reset_time_str: str) -> str:
 # Progress Bar Functions
 # ============================================================================
 
+
 def build_progress_bar(percent_str: str | int | float, width: int = 10) -> str:
     """Build a colored progress bar.
 
@@ -548,9 +574,11 @@ def build_progress_bar(percent_str: str | int | float, width: int = 10) -> str:
 
     return f"{color}{filled_bar}{C_RESET}{C_DIM}{empty_bar}{C_RESET} {percent}%"
 
+
 # ============================================================================
 # Statusline Output
 # ============================================================================
+
 
 def build_statusline(
     model: str,
@@ -619,9 +647,11 @@ def build_statusline(
 
     return SEP.join(parts)
 
+
 # ============================================================================
 # Background Cache Save
 # ============================================================================
+
 
 def save_cache_background(project: str, model: str, memory: int) -> None:
     """Save to cache in background process.
@@ -653,6 +683,7 @@ def save_cache_background(project: str, model: str, memory: int) -> None:
 # Main
 # ============================================================================
 
+
 def main() -> None:
     """Main entry point."""
     # Disable statusline for team sub-agents spawned via Task tool
@@ -669,11 +700,19 @@ def main() -> None:
 
     # Extract model info
     model_data = data.get("model", {})
-    model_display = model_data.get("display_name", "Claude") if isinstance(model_data, dict) else "Claude"
+    model_display = (
+        model_data.get("display_name", "Claude")
+        if isinstance(model_data, dict)
+        else "Claude"
+    )
 
     # Extract workspace info
     workspace_data = data.get("workspace", {})
-    current_dir = workspace_data.get("current_dir", "") if isinstance(workspace_data, dict) else ""
+    current_dir = (
+        workspace_data.get("current_dir", "")
+        if isinstance(workspace_data, dict)
+        else ""
+    )
     dir_name = get_project_name(current_dir) if current_dir else ""
 
     # Get additional info
