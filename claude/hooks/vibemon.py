@@ -26,6 +26,7 @@ from urllib.request import Request, urlopen
 # Configuration Loading
 # ============================================================================
 
+
 def load_config() -> None:
     """Load configuration from config.json and set as environment variables."""
     config_file = Path.home() / ".vibemon" / "config.json"
@@ -43,7 +44,10 @@ def load_config() -> None:
         "debug": ("DEBUG", lambda v: "1" if v else "0"),
         "cache_path": ("VIBEMON_CACHE_PATH", str),
         "auto_launch": ("VIBEMON_AUTO_LAUNCH", lambda v: "1" if v else "0"),
-        "http_urls": ("VIBEMON_HTTP_URLS", lambda v: ",".join(v) if isinstance(v, list) else str(v)),
+        "http_urls": (
+            "VIBEMON_HTTP_URLS",
+            lambda v: ",".join(v) if isinstance(v, list) else str(v),
+        ),
         "serial_port": ("VIBEMON_SERIAL_PORT", str),
         "vibemon_url": ("VIBEMON_URL", str),
         "vibemon_token": ("VIBEMON_TOKEN", str),
@@ -67,7 +71,9 @@ DEBUG = os.environ.get("DEBUG", "0") == "1"
 # Error messages
 ERR_NO_TARGET = '{"error":"No monitor target available. Set VIBEMON_HTTP_URLS or VIBEMON_SERIAL_PORT"}'
 ERR_NO_ESP32 = '{"error":"No ESP32 target available. Set VIBEMON_HTTP_URLS (with ESP32 URL) or VIBEMON_SERIAL_PORT"}'
-ERR_INVALID_MODE = '{"error":"Invalid mode: %s. Valid modes: first-project, on-thinking"}'
+ERR_INVALID_MODE = (
+    '{"error":"Invalid mode: %s. Valid modes: first-project, on-thinking"}'
+)
 
 VALID_LOCK_MODES = frozenset(["first-project", "on-thinking"])
 
@@ -131,6 +137,7 @@ def get_config() -> Config:
 # Utility Functions
 # ============================================================================
 
+
 def debug_log(msg: str) -> None:
     """Print debug message to stderr."""
     if DEBUG:
@@ -168,6 +175,7 @@ def parse_json(data: str) -> dict[str, Any]:
     except (json.JSONDecodeError, TypeError):
         return {}
 
+
 # ============================================================================
 # State Functions
 # ============================================================================
@@ -194,7 +202,7 @@ def get_git_root(directory: str) -> str | None:
             ["git", "-C", directory, "rev-parse", "--show-toplevel"],
             capture_output=True,
             text=True,
-            timeout=2
+            timeout=2,
         )
         if result.returncode == 0:
             return result.stdout.strip()
@@ -285,9 +293,11 @@ def build_payload(state: str, tool: str, project: str) -> dict[str, Any]:
         "terminalId": get_terminal_id(),
     }
 
+
 # ============================================================================
 # Low-Level Send Functions
 # ============================================================================
+
 
 def _get_serial_lock_path(port: str) -> str:
     """Get lock file path for serial port."""
@@ -328,7 +338,9 @@ def send_serial_raw(port: str, data: str) -> bool:
         lock_fd = os.open(lock_path, os.O_CREAT | os.O_RDWR)
 
         if not _acquire_lock(lock_fd):
-            debug_log(f"Failed to acquire serial lock after {SERIAL_LOCK_MAX_RETRIES} attempts")
+            debug_log(
+                f"Failed to acquire serial lock after {SERIAL_LOCK_MAX_RETRIES} attempts"
+            )
             return False
 
         try:
@@ -419,7 +431,9 @@ def send_serial(port: str, data: str) -> bool:
                 pass
 
 
-def send_http_post(url: str, endpoint: str, data: str | None = None) -> tuple[bool, str | None]:
+def send_http_post(
+    url: str, endpoint: str, data: str | None = None
+) -> tuple[bool, str | None]:
     """Send HTTP POST request."""
     try:
         full_url = f"{url}{endpoint}"
@@ -458,14 +472,16 @@ def send_vibemon_api(url: str, token: str, payload: dict[str, Any]) -> bool:
     try:
         api_url = f"{url.rstrip('/')}/status"
         # VibeMon API doesn't need terminalId
-        api_payload = json.dumps({
-            "state": payload.get("state", ""),
-            "project": payload.get("project", ""),
-            "tool": payload.get("tool", ""),
-            "model": payload.get("model", ""),
-            "memory": payload.get("memory", 0),
-            "character": payload.get("character", CHARACTER),
-        })
+        api_payload = json.dumps(
+            {
+                "state": payload.get("state", ""),
+                "project": payload.get("project", ""),
+                "tool": payload.get("tool", ""),
+                "model": payload.get("model", ""),
+                "memory": payload.get("memory", 0),
+                "character": payload.get("character", CHARACTER),
+            }
+        )
 
         req = Request(
             api_url,
@@ -488,6 +504,7 @@ def send_vibemon_api(url: str, token: str, payload: dict[str, Any]) -> bool:
 # ============================================================================
 # Target Resolution
 # ============================================================================
+
 
 def _send_http_request(
     url: str, endpoint: str, data: str | None, method: str
@@ -569,9 +586,11 @@ def try_all_targets(
 
     return False, None
 
+
 # ============================================================================
 # Command Functions
 # ============================================================================
+
 
 def _print_result(result: str | None, fallback: str) -> None:
     """Print result or fallback message."""
@@ -681,7 +700,9 @@ def send_reboot() -> bool:
     serial_data = json.dumps({"command": "reboot"})
 
     # ESP32 only - don't include localhost (Desktop)
-    success, result = try_all_targets("/reboot", None, serial_data, include_localhost=False)
+    success, result = try_all_targets(
+        "/reboot", None, serial_data, include_localhost=False
+    )
 
     if success:
         _print_result(result, '{"success":true,"rebooting":true}')
@@ -691,9 +712,11 @@ def send_reboot() -> bool:
     print(ERR_NO_ESP32)
     return False
 
+
 # ============================================================================
 # Send to All Targets (for status updates)
 # ============================================================================
+
 
 def is_monitor_running(url: str) -> bool:
     """Check if monitor is running."""
@@ -785,10 +808,14 @@ def send_to_all(payload: dict[str, Any], is_start: bool = False) -> None:
 
     # Add VibeMon API target if configured
     if config.vibemon_url and config.vibemon_token and payload.get("project"):
-        tasks.append((
-            "VibeMon API",
-            lambda: send_vibemon_api(config.vibemon_url, config.vibemon_token, payload)
-        ))
+        tasks.append(
+            (
+                "VibeMon API",
+                lambda: send_vibemon_api(
+                    config.vibemon_url, config.vibemon_token, payload
+                ),
+            )
+        )
 
     if not tasks:
         return
@@ -804,13 +831,16 @@ def send_to_all(payload: dict[str, Any], is_start: bool = False) -> None:
             except Exception as e:
                 debug_log(f"{name} failed with error: {e}")
 
+
 # ============================================================================
 # Command Handlers
 # ============================================================================
 
 # Command handler mapping
 COMMAND_HANDLERS: dict[str, Any] = {
-    "--lock": lambda args: send_lock(args[0] if args else os.path.basename(os.getcwd())),
+    "--lock": lambda args: send_lock(
+        args[0] if args else os.path.basename(os.getcwd())
+    ),
     "--unlock": lambda args: send_unlock(),
     "--status": lambda args: get_status(),
     "--lock-mode": lambda args: set_lock_mode(args[0]) if args else get_lock_mode(),
@@ -829,6 +859,7 @@ def handle_command(cmd: str, args: list[str]) -> bool | None:
 # ============================================================================
 # Main
 # ============================================================================
+
 
 def main() -> None:
     """Main entry point."""

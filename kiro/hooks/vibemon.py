@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-VibeMon Hook for Kiro IDE
+VibeMon Hook for Claude Code
 Desktop App + ESP32 (USB Serial / HTTP)
+Note: Model and Memory are read from statusline.py's cache file
 """
 
 from __future__ import annotations
@@ -25,6 +26,7 @@ from urllib.request import Request, urlopen
 # Configuration Loading
 # ============================================================================
 
+
 def load_config() -> None:
     """Load configuration from config.json and set as environment variables."""
     config_file = Path.home() / ".vibemon" / "config.json"
@@ -40,8 +42,12 @@ def load_config() -> None:
     # Map config keys to environment variables
     key_mapping = {
         "debug": ("DEBUG", lambda v: "1" if v else "0"),
+        "cache_path": ("VIBEMON_CACHE_PATH", str),
         "auto_launch": ("VIBEMON_AUTO_LAUNCH", lambda v: "1" if v else "0"),
-        "http_urls": ("VIBEMON_HTTP_URLS", lambda v: ",".join(v) if isinstance(v, list) else str(v)),
+        "http_urls": (
+            "VIBEMON_HTTP_URLS",
+            lambda v: ",".join(v) if isinstance(v, list) else str(v),
+        ),
         "serial_port": ("VIBEMON_SERIAL_PORT", str),
         "vibemon_url": ("VIBEMON_URL", str),
         "vibemon_token": ("VIBEMON_TOKEN", str),
@@ -65,7 +71,9 @@ DEBUG = os.environ.get("DEBUG", "0") == "1"
 # Error messages
 ERR_NO_TARGET = '{"error":"No monitor target available. Set VIBEMON_HTTP_URLS or VIBEMON_SERIAL_PORT"}'
 ERR_NO_ESP32 = '{"error":"No ESP32 target available. Set VIBEMON_HTTP_URLS (with ESP32 URL) or VIBEMON_SERIAL_PORT"}'
-ERR_INVALID_MODE = '{"error":"Invalid mode: %s. Valid modes: first-project, on-thinking"}'
+ERR_INVALID_MODE = (
+    '{"error":"Invalid mode: %s. Valid modes: first-project, on-thinking"}'
+)
 
 VALID_LOCK_MODES = frozenset(["first-project", "on-thinking"])
 
@@ -82,7 +90,7 @@ HTTP_TIMEOUT_SECONDS = 5
 DESKTOP_LAUNCH_WAIT_SECONDS = 3
 
 # Character configuration
-CHARACTER = "kiro"
+CHARACTER = "clawd"
 
 
 @dataclass(frozen=True)
@@ -91,6 +99,7 @@ class Config:
 
     http_urls: tuple[str, ...]
     serial_port: str | None
+    cache_path: str
     auto_launch: bool
     vibemon_url: str | None
     vibemon_token: str | None
@@ -114,6 +123,9 @@ def get_config() -> Config:
         _config = Config(
             http_urls=parse_http_urls(os.environ.get("VIBEMON_HTTP_URLS")),
             serial_port=os.environ.get("VIBEMON_SERIAL_PORT"),
+            cache_path=os.path.expanduser(
+                os.environ.get("VIBEMON_CACHE_PATH", "~/.vibemon/cache/statusline.json")
+            ),
             auto_launch=os.environ.get("VIBEMON_AUTO_LAUNCH", "0") == "1",
             vibemon_url=os.environ.get("VIBEMON_URL"),
             vibemon_token=os.environ.get("VIBEMON_TOKEN"),
@@ -124,6 +136,7 @@ def get_config() -> Config:
 # ============================================================================
 # Utility Functions
 # ============================================================================
+
 
 def debug_log(msg: str) -> None:
     """Print debug message to stderr."""
@@ -147,11 +160,27 @@ def resolve_serial_port(port_pattern: str | None) -> str | None:
     return port_pattern
 
 
+def read_input() -> str:
+    """Read input from stdin."""
+    try:
+        return sys.stdin.read()
+    except Exception:
+        return ""
+
+
+def parse_json(data: str) -> dict[str, Any]:
+    """Parse JSON string to dictionary."""
+    try:
+        return json.loads(data)
+    except (json.JSONDecodeError, TypeError):
+        return {}
+
+
 # ============================================================================
 # State Functions
 # ============================================================================
 
-# Event to state mapping (immutable) - Kiro IDE specific
+# Event to state mapping (immutable)
 EVENT_STATE_MAP: dict[str, str] = {
     "agentSpawn": "start",
     "promptSubmit": "thinking",
@@ -166,11 +195,6 @@ EVENT_STATE_MAP: dict[str, str] = {
 }
 
 
-def get_state(event_type: str) -> str:
-    """Map event type to state."""
-    return EVENT_STATE_MAP.get(event_type, "working")
-
-
 def get_git_root(directory: str) -> str | None:
     """Get git repository root directory."""
     if not directory:
@@ -180,7 +204,7 @@ def get_git_root(directory: str) -> str | None:
             ["git", "-C", directory, "rev-parse", "--show-toplevel"],
             capture_output=True,
             text=True,
-            timeout=2
+            timeout=2,
         )
         if result.returncode == 0:
             return result.stdout.strip()
@@ -189,39 +213,93 @@ def get_git_root(directory: str) -> str | None:
     return None
 
 
-def get_project_name(directory: str) -> str:
-    """Get project name from git root or directory basename."""
-    if not directory:
-        return "default"
+def get_project_name(cwd: str, transcript_path: str) -> str:
+    """Extract project name from git root, cwd, or transcript path."""
+    # 1. Try git root first (handles subdirectory cases like vibemon/terraform)
+    if cwd:
+        git_root = get_git_root(cwd)
+        if git_root:
+            name = os.path.basename(git_root)
+            if name:
+                return name
 
-    # Try git root first (handles subdirectory cases)
-    git_root = get_git_root(directory)
-    if git_root:
-        name = os.path.basename(git_root)
+    # 2. Fallback to cwd basename
+    if cwd:
+        name = os.path.basename(cwd.rstrip("/"))
         if name:
             return name
 
-    # Fallback to directory basename
-    name = os.path.basename(directory.rstrip("/"))
+    # 3. Fallback to transcript path
+    if transcript_path:
+        name = os.path.basename(os.path.dirname(transcript_path))
+        if name:
+            return name
+
+    # 4. Final fallback to current working directory
+    name = os.path.basename(os.getcwd().rstrip("/"))
     return name if name else "default"
 
 
-def build_payload(state: str, project: str, event: str | None = None) -> dict[str, Any]:
+def get_state(event_name: str, permission_mode: str = "default") -> str:
+    """Map event name to state, considering permission mode."""
+    state = EVENT_STATE_MAP.get(event_name, "working")
+
+    if permission_mode == "plan" and state in ("thinking", "working"):
+        return "planning"
+
+    return state
+
+
+def get_project_metadata(project: str) -> dict[str, Any]:
+    """Get model and memory from cache for a project."""
+    if not project:
+        return {}
+
+    config = get_config()
+
+    if not os.path.exists(config.cache_path):
+        return {}
+
+    try:
+        with open(config.cache_path) as f:
+            cache = json.load(f)
+        return cache.get(project, {})
+    except (json.JSONDecodeError, IOError):
+        return {}
+
+
+def get_terminal_id() -> str:
+    """Get terminal ID from environment."""
+    iterm_session = os.environ.get("ITERM_SESSION_ID")
+    if iterm_session:
+        return f"iterm2:{iterm_session}"
+
+    ghostty_pid = os.environ.get("GHOSTTY_PID")
+    if ghostty_pid:
+        return f"ghostty:{ghostty_pid}"
+
+    return ""
+
+
+def build_payload(state: str, tool: str, project: str) -> dict[str, Any]:
     """Build payload dict for sending to monitor."""
-    payload: dict[str, Any] = {
+    metadata = get_project_metadata(project)
+
+    return {
         "state": state,
+        "tool": tool,
         "project": project,
+        "model": metadata.get("model", ""),
+        "memory": metadata.get("memory", 0),
         "character": CHARACTER,
-        "tool": event or "",
-        "model": "",
-        "memory": 0,
+        "terminalId": get_terminal_id(),
     }
-    return payload
 
 
 # ============================================================================
 # Low-Level Send Functions
 # ============================================================================
+
 
 def _get_serial_lock_path(port: str) -> str:
     """Get lock file path for serial port."""
@@ -262,7 +340,9 @@ def send_serial_raw(port: str, data: str) -> bool:
         lock_fd = os.open(lock_path, os.O_CREAT | os.O_RDWR)
 
         if not _acquire_lock(lock_fd):
-            debug_log(f"Failed to acquire serial lock after {SERIAL_LOCK_MAX_RETRIES} attempts")
+            debug_log(
+                f"Failed to acquire serial lock after {SERIAL_LOCK_MAX_RETRIES} attempts"
+            )
             return False
 
         try:
@@ -353,7 +433,9 @@ def send_serial(port: str, data: str) -> bool:
                 pass
 
 
-def send_http_post(url: str, endpoint: str, data: str | None = None) -> tuple[bool, str | None]:
+def send_http_post(
+    url: str, endpoint: str, data: str | None = None
+) -> tuple[bool, str | None]:
     """Send HTTP POST request."""
     try:
         full_url = f"{url}{endpoint}"
@@ -391,14 +473,17 @@ def send_vibemon_api(url: str, token: str, payload: dict[str, Any]) -> bool:
     """
     try:
         api_url = f"{url.rstrip('/')}/status"
-        api_payload = json.dumps({
-            "state": payload.get("state", ""),
-            "project": payload.get("project", ""),
-            "tool": payload.get("tool", ""),
-            "model": payload.get("model", ""),
-            "memory": payload.get("memory", 0),
-            "character": payload.get("character", CHARACTER),
-        })
+        # VibeMon API doesn't need terminalId
+        api_payload = json.dumps(
+            {
+                "state": payload.get("state", ""),
+                "project": payload.get("project", ""),
+                "tool": payload.get("tool", ""),
+                "model": payload.get("model", ""),
+                "memory": payload.get("memory", 0),
+                "character": payload.get("character", CHARACTER),
+            }
+        )
 
         req = Request(
             api_url,
@@ -421,6 +506,7 @@ def send_vibemon_api(url: str, token: str, payload: dict[str, Any]) -> bool:
 # ============================================================================
 # Target Resolution
 # ============================================================================
+
 
 def _send_http_request(
     url: str, endpoint: str, data: str | None, method: str
@@ -506,6 +592,7 @@ def try_all_targets(
 # ============================================================================
 # Command Functions
 # ============================================================================
+
 
 def _print_result(result: str | None, fallback: str) -> None:
     """Print result or fallback message."""
@@ -615,7 +702,9 @@ def send_reboot() -> bool:
     serial_data = json.dumps({"command": "reboot"})
 
     # ESP32 only - don't include localhost (Desktop)
-    success, result = try_all_targets("/reboot", None, serial_data, include_localhost=False)
+    success, result = try_all_targets(
+        "/reboot", None, serial_data, include_localhost=False
+    )
 
     if success:
         _print_result(result, '{"success":true,"rebooting":true}')
@@ -629,6 +718,7 @@ def send_reboot() -> bool:
 # ============================================================================
 # Send to All Targets (for status updates)
 # ============================================================================
+
 
 def is_monitor_running(url: str) -> bool:
     """Check if monitor is running."""
@@ -720,10 +810,14 @@ def send_to_all(payload: dict[str, Any], is_start: bool = False) -> None:
 
     # Add VibeMon API target if configured
     if config.vibemon_url and config.vibemon_token and payload.get("project"):
-        tasks.append((
-            "VibeMon API",
-            lambda: send_vibemon_api(config.vibemon_url, config.vibemon_token, payload)
-        ))
+        tasks.append(
+            (
+                "VibeMon API",
+                lambda: send_vibemon_api(
+                    config.vibemon_url, config.vibemon_token, payload
+                ),
+            )
+        )
 
     if not tasks:
         return
@@ -746,7 +840,9 @@ def send_to_all(payload: dict[str, Any], is_start: bool = False) -> None:
 
 # Command handler mapping
 COMMAND_HANDLERS: dict[str, Any] = {
-    "--lock": lambda args: send_lock(args[0] if args else os.path.basename(os.getcwd())),
+    "--lock": lambda args: send_lock(
+        args[0] if args else os.path.basename(os.getcwd())
+    ),
     "--unlock": lambda args: send_unlock(),
     "--status": lambda args: get_status(),
     "--lock-mode": lambda args: set_lock_mode(args[0]) if args else get_lock_mode(),
@@ -766,38 +862,37 @@ def handle_command(cmd: str, args: list[str]) -> bool | None:
 # Main
 # ============================================================================
 
+
 def main() -> None:
     """Main entry point."""
-    # Check for command modes (--lock, --unlock, etc.)
-    if len(sys.argv) > 1 and sys.argv[1].startswith("--"):
+    # Check for command modes
+    if len(sys.argv) > 1:
         cmd = sys.argv[1]
         args = sys.argv[2:]
         result = handle_command(cmd, args)
         if result is not None:
             sys.exit(0 if result else 1)
 
-    # Get event type from command line
-    event_type = sys.argv[1] if len(sys.argv) > 1 else ""
+    # Read and parse input once
+    input_raw = read_input()
+    data = parse_json(input_raw)
 
-    if not event_type:
-        debug_log("No event type provided")
-        sys.exit(0)
+    # Extract fields from parsed data
+    event_name = data.get("hook_event_name", "Unknown")
+    tool_name = data.get("tool_name", "")
+    cwd = data.get("cwd", "")
+    transcript_path = data.get("transcript_path", "")
+    permission_mode = data.get("permission_mode", "default")
 
-    # Get state from event type
-    state = get_state(event_type)
+    project_name = get_project_name(cwd, transcript_path)
+    state = get_state(event_name, permission_mode)
 
-    # Get project name from git root or current directory
-    project_name = get_project_name(os.getcwd())
+    debug_log(f"Event: {event_name}, Tool: {tool_name}, Project: {project_name}")
 
-    debug_log(f"Event: {event_type}, State: {state}, Project: {project_name}")
-
-    # Build payload (include event as tool)
-    payload = build_payload(state, project_name, event_type)
+    payload = build_payload(state, tool_name, project_name)
     debug_log(f"Payload: {json.dumps(payload)}")
 
-    # Check if start event (promptSubmit is typically the first event)
-    is_start = event_type == "promptSubmit"
-
+    is_start = event_name == "promptSubmit"
     send_to_all(payload, is_start)
 
 
