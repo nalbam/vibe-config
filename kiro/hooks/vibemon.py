@@ -41,7 +41,6 @@ def load_config() -> None:
     # Map config keys to environment variables
     key_mapping = {
         "debug": ("DEBUG", lambda v: "1" if v else "0"),
-        "cache_path": ("VIBEMON_CACHE_PATH", str),
         "auto_launch": ("VIBEMON_AUTO_LAUNCH", lambda v: "1" if v else "0"),
         "http_urls": (
             "VIBEMON_HTTP_URLS",
@@ -89,7 +88,7 @@ HTTP_TIMEOUT_SECONDS = 5
 DESKTOP_LAUNCH_WAIT_SECONDS = 3
 
 # Character configuration
-CHARACTER = "clawd"
+CHARACTER = "kiro"
 
 
 @dataclass(frozen=True)
@@ -98,7 +97,6 @@ class Config:
 
     http_urls: tuple[str, ...]
     serial_port: str | None
-    cache_path: str
     auto_launch: bool
     vibemon_url: str | None
     vibemon_token: str | None
@@ -122,9 +120,6 @@ def get_config() -> Config:
         _config = Config(
             http_urls=parse_http_urls(os.environ.get("VIBEMON_HTTP_URLS")),
             serial_port=os.environ.get("VIBEMON_SERIAL_PORT"),
-            cache_path=os.path.expanduser(
-                os.environ.get("VIBEMON_CACHE_PATH", "~/.vibemon/cache/statusline.json")
-            ),
             auto_launch=os.environ.get("VIBEMON_AUTO_LAUNCH", "0") == "1",
             vibemon_url=os.environ.get("VIBEMON_URL"),
             vibemon_token=os.environ.get("VIBEMON_TOKEN"),
@@ -249,24 +244,6 @@ def get_state(event_name: str, permission_mode: str = "default") -> str:
     return state
 
 
-def get_project_metadata(project: str) -> dict[str, Any]:
-    """Get model and memory from cache for a project."""
-    if not project:
-        return {}
-
-    config = get_config()
-
-    if not os.path.exists(config.cache_path):
-        return {}
-
-    try:
-        with open(config.cache_path) as f:
-            cache = json.load(f)
-        return cache.get(project, {})
-    except (json.JSONDecodeError, IOError):
-        return {}
-
-
 def get_terminal_id() -> str:
     """Get terminal ID from environment."""
     iterm_session = os.environ.get("ITERM_SESSION_ID")
@@ -282,14 +259,12 @@ def get_terminal_id() -> str:
 
 def build_payload(state: str, tool: str, project: str) -> dict[str, Any]:
     """Build payload dict for sending to monitor."""
-    metadata = get_project_metadata(project)
-
     return {
         "state": state,
         "tool": tool,
         "project": project,
-        "model": metadata.get("model", ""),
-        "memory": metadata.get("memory", 0),
+        "model": "",
+        "memory": 0,
         "character": CHARACTER,
         "terminalId": get_terminal_id(),
     }
