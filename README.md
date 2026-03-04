@@ -56,6 +56,7 @@ vibe-config/
 │       ├── commit-push/      # Create git commit and push to remote
 │       ├── context-init/     # Initialize and save project context
 │       ├── context-load/     # Load saved project context
+│       ├── code-audit/       # Deep code audit and analysis
 │       ├── docs-sync/        # Documentation sync and gap analysis
 │       ├── pr-create/        # Create PR with proper format
 │       ├── resolve-coderabbit/ # Resolve CodeRabbit review comments
@@ -106,8 +107,10 @@ Automated quality checks and workflow enforcement:
 | UserPromptSubmit | vibemon.py | Update monitor (thinking state) |
 | PreToolUse | vibemon.py | Update monitor (working state) |
 | PreCompact | vibemon.py | Update monitor (compacting state) |
-| Stop | vibemon.py | Update monitor (done state) |
 | Notification | vibemon.py | Update monitor (notification state) |
+| SubagentStart | vibemon.py | Update monitor (working state) |
+| SessionEnd | vibemon.py | Update monitor (done state) |
+| Stop | vibemon.py | Update monitor (done state) |
 
 ### Kiro Hooks
 
@@ -136,6 +139,7 @@ User-invokable via `/skill-name`:
 /commit            # Create git commit with conventional format
 /commit-push       # Create git commit and push to remote
 /pr-create         # Create pull request with proper format
+/code-audit        # Deep code audit and analysis
 /validate          # Run lint, typecheck, tests with auto-fix
 /docs-sync         # Analyze and update documentation
 /context-init      # Initialize and save project context
@@ -172,7 +176,7 @@ Display Claude Code and Kiro status in real-time. Supports Claude Code, Kiro IDE
   "tool": "Edit",
   "project": "my-project",
   "model": "Claude Opus 4",
-  "memory": "62%",
+  "memory": 62,
   "character": "clawd",
   "terminalId": "iterm2:w0t4p0:UUID"
 }
@@ -238,11 +242,6 @@ The status line shows branch-specific emojis:
 ### Enabled Plugins
 
 - `context7` - Up-to-date library documentation
-- `feature-dev` - Feature development assistance
-- `frontend-design` - Frontend design assistance
-- `code-review` - Code review tools
-- `coderabbit` - CodeRabbit AI code review
-- `commit-commands` - Git commit and PR workflows
 - `superpowers` - Advanced skills and workflows
 
 ### VibeMon Config (`~/.vibemon/config.json`)

@@ -50,8 +50,10 @@ The `sync.sh` script:
 | UserPromptSubmit | vibemon.py | Update to thinking state |
 | PreToolUse | vibemon.py | Update to working state |
 | PreCompact | vibemon.py | Update to compacting state |
-| Stop | vibemon.py | Done state |
 | Notification | vibemon.py | Alert user for input |
+| SubagentStart | vibemon.py | Update to working state |
+| SessionEnd | vibemon.py | Done state |
+| Stop | vibemon.py | Done state |
 
 ### Kiro Settings (`kiro/`)
 
